@@ -707,11 +707,27 @@ async function _postToClsi(
 }
 
 function _parseOutputFiles(projectId, rawOutputFiles = []) {
+  const downloadHostUrl = new URL(Settings.apis.clsi.downloadHost)
+  const hostPrefix = `/${downloadHostUrl.hostname}/`
+  const hostWithPortPrefix = `/${downloadHostUrl.host}/`
+
   const outputFiles = []
   for (const file of rawOutputFiles) {
+    // CLSI may return either an absolute URL or a relative path.
+    const normalizedUrl = new URL(file.url, Settings.apis.clsi.downloadHost)
+    let outputPath = normalizedUrl.pathname
+
+    // Defensive handling: some environments may include the host in the path
+    // (e.g. "/clsi-nginx/project/..."), but web expects "/project/...".
+    if (outputPath.startsWith(hostWithPortPrefix)) {
+      outputPath = outputPath.slice(hostWithPortPrefix.length - 1)
+    } else if (outputPath.startsWith(hostPrefix)) {
+      outputPath = outputPath.slice(hostPrefix.length - 1)
+    }
+
     const f = {
       path: file.path, // the clsi is now sending this to web
-      url: new URL(file.url).pathname, // the location of the file on the clsi, excluding the host part
+      url: outputPath, // the location of the file on the clsi, excluding the host part
       type: file.type,
       build: file.build,
     }

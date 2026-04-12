@@ -123,6 +123,12 @@ type State = {
   error: unknown | null
 }
 
+function normalizeCreateFileMode(mode: any) {
+  return mode === 'upload' || mode === 'url' || mode === 'project'
+    ? mode
+    : 'doc'
+}
+
 const defaultState: State = {
   isDeleting: false,
   isRenaming: false,
@@ -191,7 +197,8 @@ function fileTreeActionableReducer(state: State, action: Action) {
       return {
         ...defaultState,
         isCreatingFile: true,
-        newFileCreateMode: action.newFileCreateMode,
+        // Fallback to "doc" if an unknown mode is provided by external callers.
+        newFileCreateMode: normalizeCreateFileMode(action.newFileCreateMode),
       }
     case ACTION_TYPES.START_CREATE_FOLDER:
       return { ...defaultState, isCreatingFolder: true }
@@ -443,7 +450,10 @@ export const FileTreeActionableProvider: FC<React.PropsWithChildren> = ({
   )
 
   const startCreatingFile = useCallback((newFileCreateMode: any) => {
-    dispatch({ type: ACTION_TYPES.START_CREATE_FILE, newFileCreateMode })
+    dispatch({
+      type: ACTION_TYPES.START_CREATE_FILE,
+      newFileCreateMode: normalizeCreateFileMode(newFileCreateMode),
+    })
   }, [])
 
   const startCreatingDocOrFile = useCallback(() => {
@@ -501,7 +511,9 @@ export const FileTreeActionableProvider: FC<React.PropsWithChildren> = ({
     function handleEvent(event: Event) {
       dispatch({
         type: ACTION_TYPES.START_CREATE_FILE,
-        newFileCreateMode: (event as CustomEvent<{ mode: string }>).detail.mode,
+        newFileCreateMode: normalizeCreateFileMode(
+          (event as CustomEvent<{ mode: string }>).detail?.mode
+        ),
       })
     }
 

@@ -13,6 +13,7 @@ import { useIdeReactContext } from '@/features/ide-react/context/ide-react-conte
 import { useEditorManagerContext } from '@/features/ide-react/context/editor-manager-context'
 import { useEditorOpenDocContext } from '@/features/ide-react/context/editor-open-doc-context'
 import { useEditorPropertiesContext } from '@/features/ide-react/context/editor-properties-context'
+import { useFileTreePathContext } from '@/features/file-tree/contexts/file-tree-path'
 import {
   FileTreeDocumentFindResult,
   FileTreeFileRefFindResult,
@@ -24,6 +25,10 @@ import { sendMB } from '@/infrastructure/event-tracking'
 import { FileRef } from '../../../../../types/file-ref'
 import { useLayoutContext } from '@/shared/context/layout-context'
 import { isVisualEditorAvailable } from '@/features/source-editor/utils/visual-editor'
+import {
+  getOpenEntityPathFromUrl,
+  setOpenEntityPathInUrl,
+} from '@/features/ide-react/util/open-entity-path-url'
 
 const FileTreeOpenContext = createContext<
   | {
@@ -47,15 +52,18 @@ export const FileTreeOpenProvider: FC<React.PropsWithChildren> = ({
   const rootDocId = project?.rootDocId
   const projectOwner = project?.owner?._id
   const { eventEmitter, projectJoined } = useIdeReactContext()
-  const { openDocWithId, openInitialDoc } = useEditorManagerContext()
+  const { openDocWithId, openFileWithId, openInitialDoc } =
+    useEditorManagerContext()
   const { currentDocumentId } = useEditorOpenDocContext()
   const { showVisual } = useEditorPropertiesContext()
   const { setOpenFile } = useLayoutContext()
+  const { pathInFolder, findEntityByPath } = useFileTreePathContext()
   const [openEntity, setOpenEntity] = useState<
     FileTreeDocumentFindResult | FileTreeFileRefFindResult | null
   >(null)
   const [selectedEntityCount, setSelectedEntityCount] = useState(0)
   const [fileTreeReady, setFileTreeReady] = useState(false)
+  const initialOpenDoneRef = useRef(false)
 
   // NOTE: Only used in editor redesign
   const [fileTreeExpanded, setFileTreeExpanded] = useState(true)
@@ -92,6 +100,13 @@ export const FileTreeOpenProvider: FC<React.PropsWithChildren> = ({
       }
 
       setOpenEntity(selected)
+      if (fileTreeReady && initialOpenDoneRef.current) {
+        const selectedPath = pathInFolder(selected.entity._id)
+        if (selectedPath) {
+          setOpenEntityPathInUrl(selectedPath)
+        }
+      }
+
       const editorMode =
         isVisualEditorAvailable(selected.entity.name) && showVisual
           ? 'visual'
@@ -127,7 +142,14 @@ export const FileTreeOpenProvider: FC<React.PropsWithChildren> = ({
         window.dispatchEvent(new CustomEvent('file-view:file-opened'))
       }
     },
-    [fileTreeReady, openDocWithId, projectOwner, setOpenFile, showVisual]
+    [
+      fileTreeReady,
+      openDocWithId,
+      pathInFolder,
+      projectOwner,
+      setOpenFile,
+      showVisual,
+    ]
   )
 
   const handleFileTreeDelete = useCallback(
@@ -141,14 +163,38 @@ export const FileTreeOpenProvider: FC<React.PropsWithChildren> = ({
     [eventEmitter, currentDocumentId, openDocWithId, rootDocId]
   )
 
+  const openEntityFromUrl = useCallback(async () => {
+    const path = getOpenEntityPathFromUrl()
+    if (!path) {
+      return false
+    }
+
+    const entity = findEntityByPath(path)
+    if (!entity || entity.type === 'folder') {
+      return false
+    }
+
+    if (entity.type === 'doc') {
+      await openDocWithId(entity.entity._id)
+      return true
+    }
+
+    openFileWithId(entity.entity._id)
+    return true
+  }, [findEntityByPath, openDocWithId, openFileWithId])
+
   // Open a document once the file tree and project are ready
-  const initialOpenDoneRef = useRef(false)
   useEffect(() => {
     if (fileTreeReady && projectJoined && !initialOpenDoneRef.current) {
       initialOpenDoneRef.current = true
-      openInitialDoc(rootDocId)
+      void (async () => {
+        const openedFromUrl = await openEntityFromUrl()
+        if (!openedFromUrl) {
+          await openInitialDoc(rootDocId)
+        }
+      })()
     }
-  }, [fileTreeReady, openInitialDoc, projectJoined, rootDocId])
+  }, [fileTreeReady, openEntityFromUrl, openInitialDoc, projectJoined, rootDocId])
 
   const value = useMemo(() => {
     return {

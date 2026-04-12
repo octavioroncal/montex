@@ -14,14 +14,14 @@ import {
 export default function FileTreeModalCreateFile() {
   const { t } = useTranslation()
 
-  const { isCreatingFile, cancel } = useFileTreeActionable()
+  const { isCreatingFile, newFileCreateMode, cancel } = useFileTreeActionable()
 
   if (!isCreatingFile) {
     return null
   }
 
   return (
-    <FileTreeCreateFormProvider>
+    <FileTreeCreateFormProvider initialValid={newFileCreateMode === 'doc'}>
       <OLModal size="lg" onHide={cancel} show>
         <OLModalHeader>
           <OLModalTitle>{t('add_files')}</OLModalTitle>

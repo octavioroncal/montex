@@ -29,6 +29,8 @@ export function FileTreeModalCreateFileFooterContent({
   newFileCreateMode?: string
 }) {
   const { t } = useTranslation()
+  const requiresSelectionValidation =
+    newFileCreateMode === 'url' || newFileCreateMode === 'project'
 
   return (
     <>
@@ -46,7 +48,7 @@ export function FileTreeModalCreateFileFooterContent({
           variant="primary"
           type="submit"
           form="create-file"
-          disabled={inFlight || !valid}
+          disabled={inFlight || (requiresSelectionValidation && !valid)}
           isLoading={inFlight}
           loadingLabel={t('creating')}
         >

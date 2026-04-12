@@ -1,0 +1,226 @@
+openapi: 3.1.0
+info:
+  title: Overleaf Project Content API
+  version: "1.0.0"
+  description: |
+    API para consultar la estructura de un proyecto y descargar un fichero por subruta.
+servers:
+  - url: /
+paths:
+  /project/{Project_id}/structure:
+    get:
+      operationId: getProjectStructure
+      summary: Obtener estructura de un proyecto
+      description: Devuelve el árbol completo del proyecto (carpetas, docs y ficheros binarios).
+      parameters:
+        - name: Project_id
+          in: path
+          required: true
+          description: ID del proyecto.
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Estructura del proyecto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectStructureResponse"
+              examples:
+                ok:
+                  value:
+                    project_id: "65f2f57f8d6c0b6d50300001"
+                    projectName: "My project"
+                    rootDocId: "65f2f57f8d6c0b6d50300010"
+                    structure:
+                      _id: "65f2f57f8d6c0b6d50300020"
+                      name: "rootFolder"
+                      type: "folder"
+                      path: ""
+                      folders:
+                        - _id: "65f2f57f8d6c0b6d50300030"
+                          name: "src"
+                          type: "folder"
+                          path: "src"
+                          folders: []
+                          docs:
+                            - _id: "65f2f57f8d6c0b6d50300040"
+                              name: "chapter1.tex"
+                              type: "doc"
+                              path: "src/chapter1.tex"
+                          files:
+                            - _id: "65f2f57f8d6c0b6d50300050"
+                              name: "image.png"
+                              type: "file"
+                              path: "src/image.png"
+                      docs:
+                        - _id: "65f2f57f8d6c0b6d50300010"
+                          name: "main.tex"
+                          type: "doc"
+                          path: "main.tex"
+                      files:
+                        - _id: "65f2f57f8d6c0b6d50300060"
+                          name: "refs.bib"
+                          type: "file"
+                          path: "refs.bib"
+        "401":
+          description: No autenticado.
+        "403":
+          description: Sin permisos para leer el proyecto.
+        "404":
+          description: Proyecto no encontrado.
+        "500":
+          description: Error interno.
+  /project/{Project_id}/download/by-path/{path}:
+    get:
+      operationId: downloadProjectEntityByPath
+      summary: Descargar fichero del proyecto por subruta
+      description: |
+        Descarga un documento (`doc`) o fichero binario (`file`) del proyecto a partir de su subruta.
+        La subruta es relativa a la raíz del proyecto (ej: `src/main.tex`).
+      parameters:
+        - name: Project_id
+          in: path
+          required: true
+          description: ID del proyecto.
+          schema:
+            type: string
+            minLength: 1
+        - name: path
+          in: path
+          required: true
+          allowReserved: true
+          description: Subruta del fichero dentro del proyecto.
+          schema:
+            type: string
+            minLength: 1
+          example: src/main.tex
+      responses:
+        "200":
+          description: Contenido del fichero solicitado.
+          headers:
+            Content-Disposition:
+              description: Cabecera de adjunto con el nombre de fichero.
+              schema:
+                type: string
+          content:
+            text/plain:
+              schema:
+                type: string
+              description: Respuesta cuando el recurso es un documento (`doc`).
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              description: Respuesta cuando el recurso es un fichero binario (`file`).
+        "400":
+          description: La ruta es inválida o apunta a una carpeta.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                folderPath:
+                  value:
+                    error: path points to a folder
+                missingPath:
+                  value:
+                    error: path is required
+        "401":
+          description: No autenticado.
+        "403":
+          description: Sin permisos para leer el proyecto.
+        "404":
+          description: Proyecto o ruta no encontrada.
+components:
+  schemas:
+    ProjectStructureResponse:
+      type: object
+      required:
+        - project_id
+        - projectName
+        - rootDocId
+        - structure
+      properties:
+        project_id:
+          type: string
+        projectName:
+          type: string
+        rootDocId:
+          type: string
+        structure:
+          $ref: "#/components/schemas/FolderNode"
+    FolderNode:
+      type: object
+      required:
+        - _id
+        - name
+        - type
+        - path
+        - folders
+        - docs
+        - files
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          const: folder
+        path:
+          type: string
+        folders:
+          type: array
+          items:
+            $ref: "#/components/schemas/FolderNode"
+        docs:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocNode"
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileNode"
+    DocNode:
+      type: object
+      required:
+        - _id
+        - name
+        - type
+        - path
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          const: doc
+        path:
+          type: string
+    FileNode:
+      type: object
+      required:
+        - _id
+        - name
+        - type
+        - path
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          const: file
+        path:
+          type: string
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string

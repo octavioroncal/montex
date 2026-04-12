@@ -16,11 +16,11 @@ export const useFileTreeCreateForm = () => {
   return context
 }
 
-const FileTreeCreateFormProvider: FC<React.PropsWithChildren> = ({
-  children,
-}) => {
+const FileTreeCreateFormProvider: FC<
+  React.PropsWithChildren<{ initialValid?: boolean }>
+> = ({ children, initialValid = false }) => {
   // is the form valid
-  const [valid, setValid] = useState(false)
+  const [valid, setValid] = useState(initialValid)
 
   return (
     <FileTreeCreateFormContext.Provider value={{ valid, setValid }}>

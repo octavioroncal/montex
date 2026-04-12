@@ -36,6 +36,35 @@ The present "extended" version of Overleaf CE includes:
 - Import file from external URL
 - Advanced administrator tools for managing user accounts and projects
 - Git integration
+- Direct URL access to project entities by path (docs and files)
+- Project structure endpoint for browsing the full project tree
+
+### Project content API additions
+
+The Extended CE includes three project-content endpoints (requires authentication and read access to the project):
+
+- `GET /project/{Project_id}/structure`  
+  Returns the full tree of folders, docs and files in a project.
+- `GET /project/{Project_id}/download/by-path/{path}`  
+  Downloads a project entity directly using its in-project path (for example: `src/main.tex`).
+- `GET /project/{Project_id}?path={ruta/del/fichero}`  
+  Opens a specific file directly in the editor.
+
+Direct editor URL format:
+
+- `http://localhost/project/<PROJECT_ID>?path=<ruta/del/fichero>`
+- Example: `http://localhost/project/69dad07c225fc5832ef56652?path=main.tex`
+- Subfolder example: `http://localhost/project/69dad07c225fc5832ef56652?path=chapters/intro.tex`
+- If the path contains spaces, use URL encoding (for example `%20`).
+
+Examples:
+
+```bash
+curl -b cookies.txt "http://localhost/project/<PROJECT_ID>/structure"
+curl -L -b cookies.txt "http://localhost/project/<PROJECT_ID>/download/by-path/src/main.tex" -o main.tex
+```
+
+OpenAPI schema: [`services/web/openapi.yaml`](services/web/openapi.yaml)
 
 > [!CAUTION]
 > Overleaf Community Edition is intended for use in environments where **all** users are trusted. Community Edition is **not** appropriate for scenarios where isolation of users is required due to Sandbox Compiles not being available. When not using Sandboxed Compiles, users have full read and write access to the `sharelatex` container resources (filesystem, network, environment variables) when running LaTeX compiles. 

@@ -3,6 +3,7 @@ import ErrorController from './Features/Errors/ErrorController.mjs'
 import Features from './infrastructure/Features.mjs'
 import ProjectController from './Features/Project/ProjectController.mjs'
 import ProjectApiController from './Features/Project/ProjectApiController.mjs'
+import ProjectContentApiController from './Features/Project/ProjectContentApiController.mjs'
 import ProjectListController from './Features/Project/ProjectListController.mjs'
 import SpellingController from './Features/Spelling/SpellingController.mjs'
 import EditorRouter from './Features/Editor/EditorRouter.mjs'
@@ -519,6 +520,16 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     AuthenticationController.requireLogin(),
     AuthorizationMiddleware.ensureUserCanReadProject,
     ProjectController.projectEntitiesJson
+  )
+  webRouter.get(
+    '/project/:Project_id/structure',
+    AuthorizationMiddleware.ensureUserCanReadProject,
+    ProjectContentApiController.projectStructureJson
+  )
+  webRouter.get(
+    '/project/:Project_id/download/by-path/*',
+    AuthorizationMiddleware.ensureUserCanReadProject,
+    ProjectContentApiController.downloadProjectEntityByPath
   )
 
   webRouter.get(

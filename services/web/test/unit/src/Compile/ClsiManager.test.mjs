@@ -379,6 +379,45 @@ describe('ClsiManager', function () {
         expect(ctx.result.buildId).to.equal(buildId)
       })
 
+      it('should accept relative URLs in output files', async function (ctx) {
+        ctx.responseBody.compile.outputFiles = ctx.outputFiles
+        ctx.result = await ctx.ClsiManager.promises.sendRequest(
+          ctx.project._id,
+          ctx.user_id,
+          {
+            compileBackendClass: 'c3d',
+            compileGroup: 'standard',
+            timeout: ctx.timeout,
+          }
+        )
+
+        expect(ctx.result.status).to.equal('success')
+        expect(ctx.result.outputFiles.map(f => f.path)).to.have.members(
+          ctx.outputFiles.map(f => f.path)
+        )
+      })
+
+      it('should normalize host-prefixed relative URLs in output files', async function (ctx) {
+        ctx.responseBody.compile.outputFiles = ctx.outputFiles.map(file => ({
+          ...file,
+          url: `clsi-nginx${file.url}`,
+        }))
+        ctx.result = await ctx.ClsiManager.promises.sendRequest(
+          ctx.project._id,
+          ctx.user_id,
+          {
+            compileBackendClass: 'c3d',
+            compileGroup: 'standard',
+            timeout: ctx.timeout,
+          }
+        )
+
+        expect(ctx.result.status).to.equal('success')
+        expect(ctx.result.outputFiles.map(f => f.url)).to.have.members(
+          ctx.outputFiles.map(f => f.url)
+        )
+      })
+
       it('should persist the cookie from the response', function (ctx) {
         expect(
           ctx.ClsiCookieManager.promises.setServerId
