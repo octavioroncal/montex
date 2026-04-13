@@ -30,6 +30,22 @@ describe('ProjectContentApiController', function () {
       getDoc: sinon.stub(),
     }
 
+    ctx.SessionManager = {
+      getLoggedInUserId: sinon.stub(),
+    }
+
+    ctx.UserGetter = {
+      promises: {
+        getUsers: sinon.stub(),
+      },
+    }
+
+    ctx.HistoryManager = {
+      promises: {
+        requestBlob: sinon.stub(),
+      },
+    }
+
     vi.doMock('../../../../app/src/Features/Project/ProjectGetter.mjs', () => ({
       default: ctx.ProjectGetter,
     }))
@@ -54,6 +70,21 @@ describe('ProjectContentApiController', function () {
         default: ctx.DocumentUpdaterController,
       })
     )
+
+    vi.doMock(
+      '../../../../app/src/Features/Authentication/SessionManager.mjs',
+      () => ({
+        default: ctx.SessionManager,
+      })
+    )
+
+    vi.doMock('../../../../app/src/Features/User/UserGetter.mjs', () => ({
+      default: ctx.UserGetter,
+    }))
+
+    vi.doMock('../../../../app/src/Features/History/HistoryManager.mjs', () => ({
+      default: ctx.HistoryManager,
+    }))
 
     ctx.controller = (await import(MODULE_PATH)).default
     ctx.projectId = '65f2f57f8d6c0b6d50300001'
@@ -114,6 +145,130 @@ describe('ProjectContentApiController', function () {
       expect(body.structure.folders[0].files[0].path).to.equal(
         'chapters/figure.png'
       )
+    })
+  })
+
+  describe('userProjectsStructureJson', function () {
+    it('returns all user project structures with file metadata', async function (ctx) {
+      ctx.req.session = {}
+      ctx.SessionManager.getLoggedInUserId.returns('user-id')
+      ctx.ProjectGetter.promises.findAllUsersProjects = sinon
+        .stub()
+        .resolves({
+          owned: [
+            {
+              _id: { toString: () => 'project-1' },
+              name: 'Project One',
+              owner_ref: { toString: () => 'owner-1' },
+              lastUpdatedBy: { toString: () => 'editor-1' },
+              lastUpdated: new Date('2025-01-12T08:30:00.000Z'),
+              overleaf: { history: { id: 'history-1' } },
+              rootDoc_id: 'doc-main',
+              rootFolder: [
+                {
+                  _id: 'root',
+                  name: 'rootFolder',
+                  folders: [],
+                  docs: [{ _id: 'doc-1', name: 'main.tex' }],
+                  fileRefs: [
+                    {
+                      _id: 'file-1',
+                      name: 'figure.png',
+                      hash: 'abc123',
+                      created: new Date('2025-01-10T10:00:00.000Z'),
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          readAndWrite: [],
+          readOnly: [],
+          tokenReadAndWrite: [],
+          tokenReadOnly: [],
+          review: [],
+        })
+
+      ctx.UserGetter.promises.getUsers.resolves([
+        {
+          _id: { toString: () => 'owner-1' },
+          email: 'owner@example.com',
+          first_name: 'Owner',
+          last_name: 'User',
+        },
+        {
+          _id: { toString: () => 'editor-1' },
+          email: 'editor@example.com',
+          first_name: 'Editor',
+          last_name: 'User',
+        },
+      ])
+
+      ctx.HistoryManager.promises.requestBlob.resolves({ contentLength: 2048 })
+
+      await ctx.controller.userProjectsStructureJson(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(200)
+      const body = JSON.parse(ctx.res.body)
+      expect(body.userId).to.equal('user-id')
+      expect(body.projects).to.have.length(1)
+      expect(body.projects[0].projectName).to.equal('Project One')
+      expect(body.projects[0].owner.email).to.equal('owner@example.com')
+      expect(body.projects[0].lastUpdatedBy.email).to.equal(
+        'editor@example.com'
+      )
+      expect(body.projects[0].files).to.deep.equal([
+        {
+          _id: 'doc-1',
+          name: 'main.tex',
+          type: 'doc',
+          path: 'main.tex',
+          owner: {
+            id: 'owner-1',
+            email: 'owner@example.com',
+            firstName: 'Owner',
+            lastName: 'User',
+          },
+          uploadedByOrOwner: {
+            id: 'editor-1',
+            email: 'editor@example.com',
+            firstName: 'Editor',
+            lastName: 'User',
+          },
+          createdAt: null,
+          modifiedAt: '2025-01-12T08:30:00.000Z',
+          sizeKb: null,
+        },
+        {
+          _id: 'file-1',
+          name: 'figure.png',
+          type: 'file',
+          path: 'figure.png',
+          owner: {
+            id: 'owner-1',
+            email: 'owner@example.com',
+            firstName: 'Owner',
+            lastName: 'User',
+          },
+          uploadedByOrOwner: {
+            id: 'editor-1',
+            email: 'editor@example.com',
+            firstName: 'Editor',
+            lastName: 'User',
+          },
+          createdAt: '2025-01-10T10:00:00.000Z',
+          modifiedAt: '2025-01-12T08:30:00.000Z',
+          sizeKb: 2,
+        },
+      ])
+      expect(ctx.HistoryManager.promises.requestBlob.calledOnce).to.equal(true)
+      expect(
+        ctx.HistoryManager.promises.requestBlob.calledWith(
+          'history-1',
+          'abc123',
+          'HEAD'
+        )
+      ).to.equal(true)
     })
   })
 

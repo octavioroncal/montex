@@ -516,6 +516,11 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     ProjectController.userProjectsJson
   )
   webRouter.get(
+    '/user/projects/structure',
+    AuthenticationController.requireLogin(),
+    ProjectContentApiController.userProjectsStructureJson
+  )
+  webRouter.get(
     '/project/:Project_id/entities',
     AuthenticationController.requireLogin(),
     AuthorizationMiddleware.ensureUserCanReadProject,
