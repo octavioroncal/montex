@@ -102,6 +102,42 @@ in which to run the Overleaf services. Baseimage uses the `runit` service
 manager to manage services, and init scripts from the `server-ce/runit`
 folder are added.
 
+## Publish To Docker Hub
+
+Build and push your MonTex image with:
+
+```bash
+docker login
+./scripts/release.sh <dockerhub_user>/<repo> <version>
+```
+
+Example:
+
+```bash
+./scripts/release.sh oroncal/montex 1.0.0
+```
+
+This publishes:
+
+- `<dockerhub_user>/<repo>-base:<version>` (base image, Node moderno)
+- `<dockerhub_user>/<repo>-base:latest`
+- `<dockerhub_user>/<repo>:<version>`
+- `<dockerhub_user>/<repo>:latest`
+
+> If you skip base build and use `sharelatex/sharelatex-base:latest`, the build may fail with `toSorted is not a function` because that image currently ships an old Node version.
+
+Skip base build only if you provide a modern base explicitly:
+
+```bash
+BUILD_BASE=0 OVERLEAF_BASE_TAG=<your-modern-base-image> ./scripts/release.sh <dockerhub_user>/<repo> <version>
+```
+
+Deploy that image with:
+
+```bash
+MONTEX_IMAGE=oroncal/montex MONTEX_TAG=1.0.0 docker compose -f docker-compose.release.yml up -d
+```
+
 ## Authors
 
 [The Overleaf Team](https://www.overleaf.com/about)\

@@ -9,6 +9,7 @@ import learnLatexImage from '../images/learn-latex.svg'
 import browseTemplatesImage from '../images/browse-templates.svg'
 import getMeta from '@/utils/meta'
 import OLPageContentCard from '@/shared/components/ol/ol-page-content-card'
+import { motion } from 'motion/react'
 
 export default function WelcomeMessage() {
   const { t } = useTranslation()
@@ -24,23 +25,50 @@ export default function WelcomeMessage() {
           <div className="welcome text-center">
             <h2 className="welcome-title">{t('welcome_to_sl')}</h2>
             <div className="welcome-message-cards-wrapper">
-              <WelcomeMessageCreateNewProjectDropdown
-                setActiveModal={modal => setActiveModal(modal)}
-              />
-              {wikiEnabled && (
-                <WelcomeMessageLink
-                  imgSrc={learnLatexImage}
-                  title="Learn LaTeX with a tutorial"
-                  href="/learn/latex/Learn_LaTeX_in_30_minutes"
-                  target="_blank"
+              <motion.div
+                className="welcome-message-card-animated"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0 }}
+                whileHover={{ y: -4 }}
+              >
+                <WelcomeMessageCreateNewProjectDropdown
+                  setActiveModal={(modal) => setActiveModal(modal)}
                 />
+              </motion.div>
+              {wikiEnabled && (
+                <motion.div
+                  className="welcome-message-card-animated"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                  whileHover={{ y: -4 }}
+                >
+                  <WelcomeMessageLink
+                    imgSrc={learnLatexImage}
+                    title="Learn LaTeX with a tutorial"
+                    href="/learn/latex/Learn_LaTeX_in_30_minutes"
+                    target="_blank"
+                  />
+                </motion.div>
               )}
               {templatesEnabled && (
-                <WelcomeMessageLink
-                  imgSrc={browseTemplatesImage}
-                  title="Browse templates"
-                  href="/templates"
-                />
+                <motion.div
+                  className="welcome-message-card-animated"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  whileHover={{ y: -4 }}
+                >
+                  <WelcomeMessageLink
+                    imgSrc={browseTemplatesImage}
+                    title="Browse templates"
+                    href="/templates"
+                  />
+                </motion.div>
               )}
             </div>
           </div>

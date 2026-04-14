@@ -1,0 +1,54 @@
+services:
+  sharelatex:
+    image: ${MONTEX_IMAGE:?Define MONTEX_IMAGE}:${MONTEX_TAG:-latest}
+    restart: always
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "${MONTEX_HTTP_PORT:-80}:80"
+    stop_grace_period: 60s
+    environment:
+      OVERLEAF_APP_NAME: ${OVERLEAF_APP_NAME:-MonTex}
+      OVERLEAF_MONGO_URL: mongodb://mongo/sharelatex
+      OVERLEAF_REDIS_HOST: redis
+      REDIS_HOST: redis
+      ENABLED_LINKED_FILE_TYPES: "project_file,project_output_file,zotero"
+      ENABLE_CONVERSIONS: "true"
+      EMAIL_CONFIRMATION_DISABLED: "true"
+      ADMIN_PRIVILEGE_AVAILABLE: "true"
+      OVERLEAF_SITE_URL: ${OVERLEAF_SITE_URL:-http://localhost}
+      OVERLEAF_NAV_TITLE: ${OVERLEAF_NAV_TITLE:-MonTex}
+      NODE_ENV: production
+    volumes:
+      - sharelatex-data:/var/lib/overleaf
+
+  mongo:
+    image: mongo:6.0
+    restart: always
+    command: "--replSet overleaf"
+    volumes:
+      - mongo-data:/data/db
+      - ./bin/shared/mongodb-init-replica-set.js:/docker-entrypoint-initdb.d/mongodb-init-replica-set.js:ro
+    environment:
+      MONGO_INITDB_DATABASE: sharelatex
+    extra_hosts:
+      - mongo:127.0.0.1
+    healthcheck:
+      test: echo 'db.stats().ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:6.2
+    restart: always
+    volumes:
+      - redis-data:/data
+
+volumes:
+  sharelatex-data:
+  mongo-data:
+  redis-data:

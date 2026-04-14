@@ -12,7 +12,7 @@ nav.navbar.navbar-default.navbar-main.navbar-expand-lg(
 			a.navbar-brand(href='/' aria-label=settings.appName)
 				if settings.nav.custom_logo
 					.navbar-logo(style=`background-image:url("${settings.nav.custom_logo}")`)
-				if nav.title
+				if nav.title && !settings.nav.custom_logo
 					.navbar-title #{nav.title}
 				if !nav.title && !settings.nav.custom_logo
 					.navbar-logo

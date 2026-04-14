@@ -9,16 +9,16 @@ export default function HeaderLogoOrTitle({
   overleafLogo?: string
 }) {
   const { appName } = getMeta('ol-ExposedSettings')
-  const logoUrl = customLogo ?? overleafLogo
+  const logoUrl = customLogo?.trim() || overleafLogo?.trim()
   return (
     <a href="/" aria-label={appName} className="navbar-brand">
-      {(customLogo || !title) && (
+      {(logoUrl || !title) && (
         <div
           className="navbar-logo"
           style={logoUrl ? { backgroundImage: `url("${logoUrl}")` } : {}}
         />
       )}
-      {title && (
+      {title && !logoUrl && (
         <div className="navbar-title">
           <span>{title}</span>
         </div>

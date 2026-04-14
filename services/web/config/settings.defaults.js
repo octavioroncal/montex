@@ -796,6 +796,7 @@ module.exports = {
 
   nav: {
     title: process.env.APP_NAME || 'Overleaf Community Edition',
+    custom_logo: '/img/ol-brand/montex.png',
 
     hide_powered_by: process.env.NAV_HIDE_POWERED_BY === 'true',
     left_footer: [],

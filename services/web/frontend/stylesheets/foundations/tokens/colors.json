@@ -7,117 +7,117 @@
     },
     "neutral-10": {
       "$type": "color",
-      "$value": "#f4f5f6",
+      "$value": "#f9fafb",
       "$primitive": null
     },
     "neutral-20": {
       "$type": "color",
-      "$value": "#e7e9ee",
+      "$value": "#f3f4f6",
       "$primitive": null
     },
     "neutral-30": {
       "$type": "color",
-      "$value": "#d0d5dd",
+      "$value": "#e5e7eb",
       "$primitive": null
     },
     "neutral-40": {
       "$type": "color",
-      "$value": "#afb5c0",
+      "$value": "#d1d5db",
       "$primitive": null
     },
     "neutral-50": {
       "$type": "color",
-      "$value": "#8d96a5",
+      "$value": "#9ca3af",
       "$primitive": null
     },
     "neutral-60": {
       "$type": "color",
-      "$value": "#677283",
+      "$value": "#6b7280",
       "$primitive": null
     },
     "neutral-70": {
       "$type": "color",
-      "$value": "#495365",
+      "$value": "#4b5563",
       "$primitive": null
     },
     "neutral-80": {
       "$type": "color",
-      "$value": "#2f3a4c",
+      "$value": "#111827",
       "$primitive": null
     },
     "neutral-90": {
       "$type": "color",
-      "$value": "#1b222c",
+      "$value": "#030213",
       "$primitive": null
     },
     "green-10": {
       "$type": "color",
-      "$value": "#eaf6ef",
+      "$value": "#f0fdfa",
       "$primitive": null
     },
     "green-20": {
       "$type": "color",
-      "$value": "#b8dbc8",
+      "$value": "#ccfbf1",
       "$primitive": null
     },
     "green-30": {
       "$type": "color",
-      "$value": "#86caa5",
+      "$value": "#99f6e4",
       "$primitive": null
     },
     "green-40": {
       "$type": "color",
-      "$value": "#53b57f",
+      "$value": "#5eead4",
       "$primitive": null
     },
     "green-50": {
       "$type": "color",
-      "$value": "#098842",
+      "$value": "#14b8a6",
       "$primitive": null
     },
     "green-60": {
       "$type": "color",
-      "$value": "#1e6b41",
+      "$value": "#0d9488",
       "$primitive": null
     },
     "green-70": {
       "$type": "color",
-      "$value": "#195936",
+      "$value": "#0f766e",
       "$primitive": null
     },
     "blue-10": {
       "$type": "color",
-      "$value": "#f1f4f9",
+      "$value": "#eff6ff",
       "$primitive": null
     },
     "blue-20": {
       "$type": "color",
-      "$value": "#c3d0e3",
+      "$value": "#dbeafe",
       "$primitive": null
     },
     "blue-30": {
       "$type": "color",
-      "$value": "#97b6e5",
+      "$value": "#bfdbfe",
       "$primitive": null
     },
     "blue-40": {
       "$type": "color",
-      "$value": "#6597e0",
+      "$value": "#93c5fd",
       "$primitive": null
     },
     "blue-50": {
       "$type": "color",
-      "$value": "#366cbf",
+      "$value": "#3b82f6",
       "$primitive": null
     },
     "blue-60": {
       "$type": "color",
-      "$value": "#28518f",
+      "$value": "#2563eb",
       "$primitive": null
     },
     "blue-70": {
       "$type": "color",
-      "$value": "#214475",
+      "$value": "#1d4ed8",
       "$primitive": null
     },
     "red-10": {
@@ -243,53 +243,53 @@
   },
   "bg-light-secondary": {
     "$type": "color",
-    "$value": "#f4f5f6",
+    "$value": "#f9fafb",
     "$primitive": "neutral-10"
   },
   "bg-light-tertiary": {
     "$type": "color",
-    "$value": "#e7e9ee",
+    "$value": "#f3f4f6",
     "$primitive": "neutral-20"
   },
   "bg-light-disabled": {
     "$type": "color",
-    "$value": "#e7e9ee",
+    "$value": "#f3f4f6",
     "$primitive": "neutral-20"
   },
   "bg-dark-primary": {
     "$type": "color",
-    "$value": "#1b222c",
+    "$value": "#030213",
     "$primitive": "neutral-90"
   },
   "bg-dark-secondary": {
     "$type": "color",
-    "$value": "#2f3a4c",
+    "$value": "#111827",
     "$primitive": "neutral-80"
   },
   "bg-dark-tertiary": {
     "$type": "color",
-    "$value": "#495365",
+    "$value": "#4b5563",
     "$primitive": "neutral-70"
   },
   "bg-dark-disabled": {
     "$type": "color",
-    "$value": "#495365",
+    "$value": "#4b5563",
     "$primitive": "neutral-70"
   },
   "bg-accent-01": {
     "$type": "color",
-    "$value": "#098842",
-    "$primitive": "green-50"
+    "$value": "#3b82f6",
+    "$primitive": "blue-50"
   },
   "bg-accent-02": {
     "$type": "color",
-    "$value": "#1e6b41",
-    "$primitive": "green-60"
+    "$value": "#2563eb",
+    "$primitive": "blue-60"
   },
   "bg-accent-03": {
     "$type": "color",
-    "$value": "#eaf6ef",
-    "$primitive": "green-10"
+    "$value": "#eff6ff",
+    "$primitive": "blue-10"
   },
   "bg-danger-01": {
     "$type": "color",
@@ -323,37 +323,37 @@
   },
   "bg-info-01": {
     "$type": "color",
-    "$value": "#366cbf",
+    "$value": "#3b82f6",
     "$primitive": "blue-50"
   },
   "bg-info-02": {
     "$type": "color",
-    "$value": "#28518f",
+    "$value": "#2563eb",
     "$primitive": "blue-60"
   },
   "bg-info-03": {
     "$type": "color",
-    "$value": "#f1f4f9",
+    "$value": "#eff6ff",
     "$primitive": "blue-10"
   },
   "content-primary": {
     "$type": "color",
-    "$value": "#1b222c",
-    "$primitive": "neutral-90"
+    "$value": "#111827",
+    "$primitive": "neutral-80"
   },
   "content-secondary": {
     "$type": "color",
-    "$value": "#495365",
+    "$value": "#4b5563",
     "$primitive": "neutral-70"
   },
   "content-disabled": {
     "$type": "color",
-    "$value": "#afb5c0",
-    "$primitive": "neutral-40"
+    "$value": "#9ca3af",
+    "$primitive": "neutral-50"
   },
   "content-placeholder": {
     "$type": "color",
-    "$value": "#677283",
+    "$value": "#6b7280",
     "$primitive": "neutral-60"
   },
   "content-danger": {
@@ -368,27 +368,27 @@
   },
   "content-positive": {
     "$type": "color",
-    "$value": "#098842",
+    "$value": "#14b8a6",
     "$primitive": "green-50"
   },
   "content-info": {
     "$type": "color",
-    "$value": "#366cbf",
+    "$value": "#3b82f6",
     "$primitive": "blue-50"
   },
   "border-primary": {
     "$type": "color",
-    "$value": "#677283",
+    "$value": "#6b7280",
     "$primitive": "neutral-60"
   },
   "border-hover": {
     "$type": "color",
-    "$value": "#495365",
+    "$value": "#4b5563",
     "$primitive": "neutral-70"
   },
   "border-disabled": {
     "$type": "color",
-    "$value": "#e7e9ee",
+    "$value": "#f3f4f6",
     "$primitive": "neutral-20"
   },
   "border-danger": {
@@ -398,52 +398,52 @@
   },
   "border-divider": {
     "$type": "color",
-    "$value": "#e7e9ee",
+    "$value": "#f3f4f6",
     "$primitive": "neutral-20"
   },
   "border-active": {
     "$type": "color",
-    "$value": "#366cbf",
+    "$value": "#3b82f6",
     "$primitive": "blue-50"
   },
   "link-web": {
     "$type": "color",
-    "$value": "#1e6b41",
-    "$primitive": "green-60"
+    "$value": "#3b82f6",
+    "$primitive": "blue-50"
   },
   "link-web-hover": {
     "$type": "color",
-    "$value": "#195936",
-    "$primitive": "green-70"
+    "$value": "#2563eb",
+    "$primitive": "blue-60"
   },
   "link-web-visited": {
     "$type": "color",
-    "$value": "#1e6b41",
-    "$primitive": "green-60"
+    "$value": "#2563eb",
+    "$primitive": "blue-60"
   },
   "link-ui": {
     "$type": "color",
-    "$value": "#366cbf",
+    "$value": "#3b82f6",
     "$primitive": "blue-50"
   },
   "link-ui-hover": {
     "$type": "color",
-    "$value": "#28518f",
+    "$value": "#2563eb",
     "$primitive": "blue-60"
   },
   "link-ui-visited": {
     "$type": "color",
-    "$value": "#28518f",
+    "$value": "#2563eb",
     "$primitive": "blue-60"
   },
   "hover-interaction": {
     "$type": "color",
-    "$value": "rgba(27, 34, 44, 0.0800)",
+    "$value": "rgba(3, 2, 19, 0.0800)",
     "$primitive": null
   },
   "overlay": {
     "$type": "color",
-    "$value": "rgba(27, 34, 44, 0.8000)",
+    "$value": "rgba(3, 2, 19, 0.8000)",
     "$primitive": null
   }
 }

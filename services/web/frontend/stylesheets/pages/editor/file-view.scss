@@ -111,8 +111,9 @@
 
     left: 20px;
     content: '';
-    background: url(../../../../public/img/ol-brand/overleaf-o-grey.svg)
+    background: url(../../../../public/img/ol-brand/logo-montex.svg)
       center / 200px no-repeat;
+    filter: grayscale(1) saturate(0);
     opacity: 0.2;
     pointer-events: none;
   }

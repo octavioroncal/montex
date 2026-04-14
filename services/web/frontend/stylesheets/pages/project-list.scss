@@ -769,3 +769,90 @@ form.project-search {
     inset: 0;
   }
 }
+
+.project-list-react {
+  .project-list-welcome-wrapper {
+    padding: var(--spacing-06) 0 var(--spacing-08);
+  }
+
+  .project-list-empty-col {
+    .page-content-card {
+      border: 1px solid rgb(0 0 0 / 10%);
+      border-radius: var(--border-radius-large);
+      box-shadow: 0 16px 38px rgb(3 2 19 / 8%);
+      background: linear-gradient(
+        145deg,
+        var(--bg-light-primary) 0%,
+        var(--bg-info-03) 100%
+      );
+      overflow: hidden;
+    }
+  }
+
+  .welcome-new-wrapper {
+    .welcome-title {
+      color: var(--neutral-80);
+      font-size: clamp(2rem, 4vw, 3.35rem);
+      line-height: 1.08;
+      font-weight: 700;
+      margin-top: var(--spacing-04);
+    }
+
+    .welcome-message-cards-wrapper {
+      display: grid;
+      width: 100%;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--spacing-06);
+      margin-top: var(--spacing-08);
+
+      @include media-breakpoint-down(lg) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .welcome-message-card-item {
+      width: 100%;
+    }
+
+    .welcome-message-card-animated {
+      width: 100%;
+      display: flex;
+    }
+
+    .welcome-message-card {
+      width: 100%;
+      min-height: 260px;
+      border: 1px solid rgb(0 0 0 / 10%);
+      border-radius: var(--border-radius-large);
+      box-shadow: 0 10px 26px rgb(3 2 19 / 8%);
+      background-color: var(--bg-light-primary);
+      transition: all 0.25s ease;
+      padding: var(--spacing-07) var(--spacing-06);
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 22px 40px rgb(3 2 19 / 14%);
+        border-color: rgb(59 130 246 / 28%);
+      }
+
+      .welcome-message-card-img {
+        max-height: 124px;
+      }
+    }
+
+    .welcome-message-card-link {
+      p {
+        color: var(--neutral-80);
+        font-weight: 600;
+        margin-bottom: var(--spacing-04);
+      }
+    }
+
+    .create-new-project-dropdown {
+      border: 1px solid var(--border-divider);
+      border-radius: var(--border-radius-medium);
+      box-shadow: 0 12px 28px rgb(3 2 19 / 14%);
+      margin-top: var(--spacing-03);
+    }
+  }
+}

@@ -26,11 +26,12 @@ services:
     env_file:
       - dev.env
     environment:
+      - DOWNLOAD_HOST=http://clsi-nginx:8080
       - SANDBOXED_COMPILES=false
     user: root
     volumes:
-      - ${PWD}/compiles:/overleaf/services/clsi/compiles
-      - ${PWD}/output:/overleaf/services/clsi/output
+      - ./compiles:/overleaf/services/clsi/compiles
+      - ./output:/overleaf/services/clsi/output
       - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
       - clsi-cache:/overleaf/services/clsi/cache
 
@@ -42,7 +43,7 @@ services:
       - /var/cache/nginx
       - /run
     volumes:
-      - ${PWD}/output:/output:ro
+      - ./output:/output:ro
       - ../services/clsi/nginx.conf:/etc/nginx/conf.d/nginx.conf:ro
 
   contacts:
@@ -161,10 +162,11 @@ services:
     env_file:
       - dev.env
     environment:
-      - APP_NAME=Overleaf Community Edition
+      - APP_NAME=MonTex
       - ENABLED_LINKED_FILE_TYPES=project_file,project_output_file,zotero
       - EMAIL_CONFIRMATION_DISABLED=true
       - NODE_ENV=development
+      - ADMIN_PRIVILEGE_AVAILABLE=true
       - OVERLEAF_ALLOW_PUBLIC_ACCESS=true
     command: ["node", "app.mjs"]
     volumes:

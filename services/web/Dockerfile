@@ -77,6 +77,7 @@ COPY libraries/stream-utils/ /overleaf/libraries/stream-utils/
 COPY libraries/validation-tools/ /overleaf/libraries/validation-tools/
 COPY services/web/ /overleaf/services/web/
 COPY tools/migrations/ /overleaf/tools/migrations/
+RUN find /overleaf/services/web/public -type f -exec chmod a+r {} +
 
 # Build the latex parser
 RUN cd /overleaf/services/web && npm run 'lezer-latex:generate'
@@ -117,6 +118,7 @@ COPY libraries/stream-utils/ /overleaf/libraries/stream-utils/
 COPY libraries/validation-tools/ /overleaf/libraries/validation-tools/
 COPY services/web/ /overleaf/services/web/
 COPY tools/migrations/ /overleaf/tools/migrations/
+RUN find /overleaf/services/web/public -type f -exec chmod a+r {} +
 
 # Omit Server Pro/CE specific scripts from SaaS image
 RUN rm /overleaf/services/web/modules/server-ce-scripts -rf

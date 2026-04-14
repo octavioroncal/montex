@@ -20,6 +20,7 @@ import { SurveyWidgetDsNav } from '@/features/project-list/components/survey-wid
 import { useFeatureFlag } from '@/shared/context/split-test-context'
 import { ThemedProjectDashboardNotification } from './themed-project-dashboard-notification'
 import { useThemedDashboardIntro } from './use-themed-dashboard-intro'
+import { motion } from 'motion/react'
 
 function SidebarDsNav() {
   const { t } = useTranslation()
@@ -36,7 +37,7 @@ function SidebarDsNav() {
   const sendMB = useSendProjectListMB()
   const { sessionUser, showSubscriptionLink, items } = getMeta('ol-navbar')
   const helpItem = items.find(
-    item => item.text === 'help_and_resources'
+    (item) => item.text === 'help_and_resources',
   ) as NavbarDropdownItemData
   const { containerRef, scrolledUp, scrolledDown } = useScrolled()
   const themedDsNav = useFeatureFlag('themed-project-dashboard')
@@ -48,13 +49,17 @@ function SidebarDsNav() {
   } = useThemedDashboardIntro()
 
   return (
-    <div
-      className="project-list-sidebar-wrapper-react d-none d-md-flex"
+    <motion.div
+      className="project-list-sidebar-wrapper-react d-none d-md-flex project-dashboard-sidebar"
       {...getTargetProps({
         style: {
           ...(mousePos?.x && { flexBasis: `${mousePos.x}px` }),
         },
       })}
+      initial={{ opacity: 0, x: -20 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
     >
       <nav
         className="flex-grow flex-shrink"
@@ -77,7 +82,7 @@ function SidebarDsNav() {
       <div
         className={classnames(
           'ds-nav-sidebar-lower',
-          scrolledUp && 'show-shadow'
+          scrolledUp && 'show-shadow',
         )}
       >
         <div className="project-list-sidebar-survey-wrapper">
@@ -90,7 +95,7 @@ function SidebarDsNav() {
           {helpItem && (
             <Dropdown
               className="ds-nav-icon-dropdown"
-              onToggle={show => {
+              onToggle={(show) => {
                 setShowHelpDropdown(show)
                 if (show) {
                   sendMB('menu-expand', { item: 'help', location: 'sidebar' })
@@ -132,7 +137,7 @@ function SidebarDsNav() {
             <>
               <Dropdown
                 className="ds-nav-icon-dropdown"
-                onToggle={show => {
+                onToggle={(show) => {
                   setShowAccountDropdown(show)
                   if (show) {
                     sendMB('menu-expand', {
@@ -209,7 +214,7 @@ function SidebarDsNav() {
           },
         })}
       />
-    </div>
+    </motion.div>
   )
 }
 

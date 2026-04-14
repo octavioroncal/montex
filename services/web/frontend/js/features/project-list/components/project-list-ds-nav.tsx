@@ -19,10 +19,9 @@ import DefaultNavbar from '@/shared/components/navbar/default-navbar'
 import Footer from '@/shared/components/footer/footer'
 import SidebarDsNav from '@/features/project-list/components/sidebar/sidebar-ds-nav'
 import SystemMessages from '@/shared/components/system-messages'
-import overleafLogo from '@/shared/svgs/overleaf-a-ds-solution-mallard.svg'
-import overleafLogoDark from '@/shared/svgs/overleaf-a-ds-solution-mallard-dark.svg'
 import CookieBanner from '@/shared/components/cookie-banner'
-import { useActiveOverallTheme } from '@/shared/hooks/use-active-overall-theme'
+import { motion } from 'motion/react'
+import { Database, Layers, Shield } from 'lucide-react'
 
 export function ProjectListDsNav() {
   const navbarProps = getMeta('ol-navbar')
@@ -33,16 +32,39 @@ export function ProjectListDsNav() {
     searchText,
     setSearchText,
     selectedProjects,
+    totalProjectsCount,
     filter,
     tags,
     selectedTagId,
   } = useProjectListContext()
-  const activeOverallTheme = useActiveOverallTheme('themed-project-dashboard')
 
-  const selectedTag = tags.find(tag => tag._id === selectedTagId)
+  const selectedTag = tags.find((tag) => tag._id === selectedTagId)
+  const summaryCards = [
+    {
+      id: 'projects',
+      label: t('projects'),
+      value: totalProjectsCount,
+      tone: 'primary',
+      icon: Database,
+    },
+    {
+      id: 'selected',
+      label: t('selected'),
+      value: selectedProjects.length,
+      tone: 'teal',
+      icon: Shield,
+    },
+    {
+      id: 'tags',
+      label: t('tags'),
+      value: tags.length,
+      tone: 'indigo',
+      icon: Layers,
+    },
+  ]
 
   const tableTopArea = (
-    <div className="pt-2 pb-3 d-md-none d-flex gap-2">
+    <div className="project-dashboard-table-top pt-2 pb-3 d-md-none d-flex gap-2">
       <NewProjectButton
         id="new-project-button-projects-table"
         showAddAffiliationWidget
@@ -52,60 +74,109 @@ export function ProjectListDsNav() {
         setInputValue={setSearchText}
         filter={filter}
         selectedTag={selectedTag}
-        className="overflow-hidden flex-grow-1"
+        className="project-dashboard-search overflow-hidden flex-grow-1"
       />
     </div>
   )
 
   return (
-    <div className="project-ds-nav-page website-redesign">
+    <div className="project-ds-nav-page website-redesign institutional-dashboard">
       <SystemMessages />
       <DefaultNavbar
         {...navbarProps}
-        overleafLogo={
-          activeOverallTheme === 'dark' ? overleafLogoDark : overleafLogo
-        }
+        customLogo={`${getMeta('ol-baseAssetPath')}img/ol-brand/montex.png`}
         showCloseIcon
       />
       <div className="project-list-wrapper">
         <SidebarDsNav />
         <div className="project-ds-nav-content-and-messages">
           <div className="project-ds-nav-content">
-            <div className="project-ds-nav-main">
+            <div className="project-ds-nav-main project-dashboard-shell">
               {error ? <DashApiError /> : ''}
               <UserNotifications />
               <main aria-labelledby="main-content">
-                <div className="project-list-header-row">
-                  <ProjectListTitle
-                    filter={filter}
-                    selectedTag={selectedTag}
-                    selectedTagId={selectedTagId}
-                    className="text-truncate d-none d-md-block"
-                  />
-                  <div className="project-tools">
-                    <div className="d-none d-md-block">
-                      {selectedProjects.length === 0 ? (
-                        <CurrentPlanWidget />
-                      ) : (
-                        <ProjectTools />
-                      )}
-                    </div>
-                    <div className="d-md-none">
-                      <CurrentPlanWidget />
-                    </div>
-                  </div>
-                </div>
-                <div className="project-ds-nav-project-list">
-                  <OLRow className="d-none d-md-block">
-                    <OLCol lg={7}>
-                      <SearchForm
-                        inputValue={searchText}
-                        setInputValue={setSearchText}
+                <motion.section
+                  className="project-dashboard-hero"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <div className="project-list-header-row">
+                    <div className="project-dashboard-heading">
+                      <ProjectListTitle
                         filter={filter}
                         selectedTag={selectedTag}
+                        selectedTagId={selectedTagId}
+                        className="text-truncate d-none d-md-block"
                       />
-                    </OLCol>
-                  </OLRow>
+                      <p className="project-dashboard-subtitle">
+                        {t('a_dashboard_that_follows_your_lead')}
+                      </p>
+                    </div>
+                    <div className="project-tools">
+                      <div className="d-none d-md-block">
+                        {selectedProjects.length === 0 ? (
+                          <CurrentPlanWidget />
+                        ) : (
+                          <ProjectTools />
+                        )}
+                      </div>
+                      <div className="d-md-none">
+                        <CurrentPlanWidget />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="project-dashboard-stats">
+                    {summaryCards.map((card, index) => {
+                      const Icon = card.icon
+                      return (
+                        <motion.article
+                          key={card.id}
+                          className={`project-dashboard-stat-card tone-${card.tone}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.6, delay: index * 0.1 }}
+                          whileHover={{ y: -4 }}
+                        >
+                          <div
+                            className={`project-dashboard-stat-icon tone-${card.tone}`}
+                          >
+                            <Icon size={20} />
+                          </div>
+                          <div className="project-dashboard-stat-content">
+                            <span className="project-dashboard-stat-label">
+                              {card.label}
+                            </span>
+                            <strong className="project-dashboard-stat-value">
+                              {card.value.toLocaleString()}
+                            </strong>
+                          </div>
+                        </motion.article>
+                      )
+                    })}
+                  </div>
+                </motion.section>
+                <div className="project-ds-nav-project-list">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                  >
+                    <OLRow className="project-dashboard-search-row d-none d-md-block">
+                      <OLCol lg={7}>
+                        <SearchForm
+                          inputValue={searchText}
+                          setInputValue={setSearchText}
+                          filter={filter}
+                          selectedTag={selectedTag}
+                          className="project-dashboard-search"
+                        />
+                      </OLCol>
+                    </OLRow>
+                  </motion.div>
                   <div className="project-list-sidebar-survey-wrapper d-md-none">
                     {/* Omit the survey card in mobile view for now */}
                   </div>
@@ -119,15 +190,27 @@ export function ProjectListDsNav() {
                       <SortByDropdown />
                     </div>
                   </div>
-                  <div className="mt-3">
+                  <motion.div
+                    className="project-dashboard-table-wrap mt-3"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
+                  >
                     <TableContainer bordered>
                       {tableTopArea}
                       <ProjectListTable />
                     </TableContainer>
-                  </div>
-                  <div className="mt-3">
+                  </motion.div>
+                  <motion.div
+                    className="project-dashboard-load-more mt-3"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.4 }}
+                  >
                     <LoadMore />
-                  </div>
+                  </motion.div>
                 </div>
               </main>
             </div>

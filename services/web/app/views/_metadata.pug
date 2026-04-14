@@ -131,10 +131,12 @@ if settings.robotsNoindex
 	meta(name='robots' content='noindex')
 
 //- Icons
-link(rel='icon' sizes='32x32' href=buildBaseAssetPath() + 'favicon-32x32.png')
-link(rel='icon' sizes='16x16' href=buildBaseAssetPath() + 'favicon-16x16.png')
-link(rel='icon' href=buildBaseAssetPath() + 'favicon.svg' type='image/svg+xml')
-link(rel='apple-touch-icon' href=buildBaseAssetPath() + 'apple-touch-icon.png')
+ - const faviconVersion = '?v=montex-20260413-2'
+link(rel='shortcut icon' href=buildBaseAssetPath() + 'favicon.ico' + faviconVersion)
+link(rel='icon' sizes='32x32' href=buildBaseAssetPath() + 'favicon-32x32.png' + faviconVersion)
+link(rel='icon' sizes='16x16' href=buildBaseAssetPath() + 'favicon-16x16.png' + faviconVersion)
+link(rel='icon' href=buildBaseAssetPath() + 'favicon.svg' + faviconVersion type='image/svg+xml')
+link(rel='apple-touch-icon' href=buildBaseAssetPath() + 'apple-touch-icon.png' + faviconVersion)
 link(
 	rel='mask-icon'
 	href=buildBaseAssetPath() + 'mask-favicon.svg'
