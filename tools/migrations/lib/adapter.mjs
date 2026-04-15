@@ -1,5 +1,5 @@
 import Path from 'node:path'
-import { db } from './mongodb.mjs'
+import { db, disconnectDb } from './mongodb.mjs'
 import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -27,7 +27,7 @@ class Adapter {
   }
 
   disconnect() {
-    return Promise.resolve()
+    return disconnectDb()
   }
 
   async getExecutedMigrationNames() {

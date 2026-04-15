@@ -80,13 +80,20 @@ function initializeOpenTelemetryLogging() {
 
 function initializeProfileAgent() {
   console.log('Starting Google Profile Agent')
-  const profiler = require('@google-cloud/profiler')
-  profiler.start({
-    serviceContext: {
-      service: APP_NAME,
-      version: BUILD_VERSION,
-    },
-  })
+  try {
+    const profiler = require('@google-cloud/profiler')
+    profiler.start({
+      serviceContext: {
+        service: APP_NAME,
+        version: BUILD_VERSION,
+      },
+    })
+  } catch (error) {
+    console.warn(
+      'Profile agent requested, but @google-cloud/profiler is not installed. Skipping profile startup.'
+    )
+    console.warn(error?.message || error)
+  }
 }
 
 function initializePrometheus() {

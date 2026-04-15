@@ -41,10 +41,21 @@ COPY services/clsi/ /overleaf/services/clsi/
 
 FROM app AS with-texlive
 
-RUN apt-get update \
-    && apt-cache depends texlive-full | grep "Depends: " | grep -v -- "-doc" | grep -v -- "-lang-" | sed 's/Depends: //' | xargs apt-get install -y --no-install-recommends \
-    && apt-get install -y --no-install-recommends fontconfig inkscape python3-pygments qpdf \
-    && rm -rf /var/lib/apt/lists/*
+RUN set -eux; \
+    find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) -print0 \
+      | xargs -0 -r sed -i \
+        -e 's|http://deb.debian.org|https://deb.debian.org|g' \
+        -e 's|http://security.debian.org|https://security.debian.org|g'; \
+    apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update; \
+    apt-cache depends texlive-full \
+      | grep "Depends: " \
+      | grep -v -- "-doc" \
+      | grep -v -- "-lang-" \
+      | sed 's/Depends: //' \
+      | xargs apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends --fix-missing; \
+    apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends --fix-missing \
+      fontconfig inkscape python3-pygments qpdf; \
+    rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p cache compiles output \
 &&  chown node:node cache compiles output

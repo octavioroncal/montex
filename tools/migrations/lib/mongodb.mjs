@@ -65,6 +65,10 @@ export const db = {
 
 export const connectionPromise = mongoClient.connect()
 
+export async function disconnectDb() {
+  await mongoClient.close()
+}
+
 export async function getCollectionNames() {
   const internalDb = mongoClient.db()
 
@@ -88,6 +92,7 @@ const mongodb = {
   db,
   ObjectId,
   connectionPromise,
+  disconnectDb,
   waitForDb,
   getCollectionNames,
   getCollectionInternal,
