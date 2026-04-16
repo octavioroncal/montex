@@ -4,6 +4,8 @@ import Features from './infrastructure/Features.mjs'
 import ProjectController from './Features/Project/ProjectController.mjs'
 import ProjectApiController from './Features/Project/ProjectApiController.mjs'
 import ProjectContentApiController from './Features/Project/ProjectContentApiController.mjs'
+import ProjectContentApiAuthController from './Features/Project/ProjectContentApiAuthController.mjs'
+import ProjectContentApiAuthMiddleware from './Features/Project/ProjectContentApiAuthMiddleware.mjs'
 import ProjectListController from './Features/Project/ProjectListController.mjs'
 import SpellingController from './Features/Spelling/SpellingController.mjs'
 import EditorRouter from './Features/Editor/EditorRouter.mjs'
@@ -154,6 +156,10 @@ const rateLimiters = {
     points: 30,
     duration: 60,
   }),
+  projectContentApiToken: new RateLimiter('project-content-api-token', {
+    points: 10,
+    duration: 60,
+  }),
   readAndWriteToken: new RateLimiter('read-and-write-token', {
     points: 15,
     duration: 60,
@@ -240,6 +246,12 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     RateLimiterMiddleware.loginRateLimitEmail(), // rate limit email (10 / 120s)
     CaptchaMiddleware.validateCaptcha('login'),
     AuthenticationController.passportLogin
+  )
+
+  publicApiRouter.post(
+    '/api/v1/token',
+    RateLimiterMiddleware.rateLimit(rateLimiters.projectContentApiToken),
+    ProjectContentApiAuthController.issueBearerToken
   )
 
   webRouter.get(
@@ -521,6 +533,11 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     ProjectContentApiController.userProjectsStructureJson
   )
   webRouter.get(
+    '/user/projects/summary',
+    ProjectContentApiAuthMiddleware.requireSessionOrBearer,
+    ProjectContentApiController.userProjectsSummaryJson
+  )
+  webRouter.get(
     '/project/:Project_id/entities',
     AuthenticationController.requireLogin(),
     AuthorizationMiddleware.ensureUserCanReadProject,
@@ -528,13 +545,21 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
   )
   webRouter.get(
     '/project/:Project_id/structure',
+    ProjectContentApiAuthMiddleware.attachBearerUser,
     AuthorizationMiddleware.ensureUserCanReadProject,
     ProjectContentApiController.projectStructureJson
   )
   webRouter.get(
     '/project/:Project_id/download/by-path/*',
+    ProjectContentApiAuthMiddleware.attachBearerUser,
     AuthorizationMiddleware.ensureUserCanReadProject,
     ProjectContentApiController.downloadProjectEntityByPath
+  )
+  webRouter.get(
+    '/project/:Project_id/download/compiled-pdf/by-path/*',
+    ProjectContentApiAuthMiddleware.attachBearerUser,
+    AuthorizationMiddleware.ensureUserCanReadProject,
+    ProjectContentApiController.downloadCompiledPdfByPath
   )
 
   webRouter.get(

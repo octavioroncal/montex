@@ -7,11 +7,85 @@ info:
 servers:
   - url: /
 paths:
+  /api/v1/token:
+    post:
+      operationId: issueProjectContentApiToken
+      summary: Obtener token Bearer con usuario y contraseña
+      description: Emite un token Bearer para consumir la API de contenidos de proyecto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenRequest"
+            examples:
+              byEmail:
+                value:
+                  email: "user@example.com"
+                  password: "my-password"
+              byUsername:
+                value:
+                  username: "user@example.com"
+                  password: "my-password"
+      responses:
+        "200":
+          description: Token emitido correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: Faltan credenciales.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingFields:
+                  value:
+                    error: username and password are required
+        "401":
+          description: Credenciales inválidas.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalid:
+                  value:
+                    error: invalid_credentials
+  /user/projects/summary:
+    get:
+      operationId: getUserProjectsSummary
+      summary: Obtener listado simple de proyectos del usuario
+      description: Devuelve los proyectos visibles por el usuario autenticado con su ID y nombre.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Listado de proyectos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectSummaryResponse"
+              examples:
+                ok:
+                  value:
+                    userId: "65f2f57f8d6c0b6d503000aa"
+                    projects:
+                      - project_id: "65f2f57f8d6c0b6d50300001"
+                        projectName: "My project"
+                      - project_id: "65f2f57f8d6c0b6d50300002"
+                        projectName: "Shared project"
+        "401":
+          description: No autenticado.
   /project/{Project_id}/structure:
     get:
       operationId: getProjectStructure
       summary: Obtener estructura de un proyecto
       description: Devuelve el árbol completo del proyecto (carpetas, docs y ficheros binarios).
+      security:
+        - bearerAuth: []
       parameters:
         - name: Project_id
           in: path
@@ -72,6 +146,66 @@ paths:
           description: Proyecto no encontrado.
         "500":
           description: Error interno.
+  /project/{Project_id}/download/compiled-pdf/by-path/{path}:
+    get:
+      operationId: downloadCompiledPdfByPath
+      summary: Compilar y descargar PDF desde una subruta LaTeX
+      description: |
+        Localiza un documento por su subruta y, si apunta a un documento LaTeX (`.tex`),
+        compila el proyecto usando ese documento como raíz y devuelve `output.pdf`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Project_id
+          in: path
+          required: true
+          description: ID del proyecto.
+          schema:
+            type: string
+            minLength: 1
+        - name: path
+          in: path
+          required: true
+          allowReserved: true
+          description: Subruta del documento `.tex` dentro del proyecto.
+          schema:
+            type: string
+            minLength: 1
+          example: src/main.tex
+      responses:
+        "200":
+          description: PDF compilado.
+          headers:
+            Content-Disposition:
+              description: Cabecera de descarga/renderizado del PDF.
+              schema:
+                type: string
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Ruta inválida o no apunta a un documento LaTeX.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingPath:
+                  value:
+                    error: path is required
+                nonLatex:
+                  value:
+                    error: path must point to a latex document (.tex)
+        "401":
+          description: No autenticado.
+        "403":
+          description: Sin permisos para leer el proyecto.
+        "404":
+          description: Proyecto o ruta no encontrada.
+        "500":
+          description: Error de compilación o descarga.
   /project/{Project_id}/download/by-path/{path}:
     get:
       operationId: downloadProjectEntityByPath
@@ -79,6 +213,8 @@ paths:
       description: |
         Descarga un documento (`doc`) o fichero binario (`file`) del proyecto a partir de su subruta.
         La subruta es relativa a la raíz del proyecto (ej: `src/main.tex`).
+      security:
+        - bearerAuth: []
       parameters:
         - name: Project_id
           in: path
@@ -134,7 +270,74 @@ paths:
         "404":
           description: Proyecto o ruta no encontrada.
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
   schemas:
+    TokenRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - password
+      anyOf:
+        - required:
+            - username
+        - required:
+            - email
+    TokenResponse:
+      type: object
+      required:
+        - access_token
+        - token_type
+        - scope
+        - expires_in
+        - expires_at
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: Bearer
+        scope:
+          type: string
+          example: project_content_api
+        expires_in:
+          type: integer
+          example: 31536000
+        expires_at:
+          type: string
+          format: date-time
+    ProjectSummaryResponse:
+      type: object
+      required:
+        - userId
+        - projects
+      properties:
+        userId:
+          type: string
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectSummaryItem"
+    ProjectSummaryItem:
+      type: object
+      required:
+        - project_id
+        - projectName
+      properties:
+        project_id:
+          type: string
+        projectName:
+          type: string
     ProjectStructureResponse:
       type: object
       required:

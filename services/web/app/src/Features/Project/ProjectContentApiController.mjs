@@ -5,9 +5,19 @@ import ProjectLocator from './ProjectLocator.mjs'
 import Errors from '../Errors/Errors.js'
 import FileStoreController from '../FileStore/FileStoreController.mjs'
 import DocumentUpdaterController from '../DocumentUpdater/DocumentUpdaterController.mjs'
+import CompileManager from '../Compile/CompileManager.mjs'
+import CompileController from '../Compile/CompileController.mjs'
 import SessionManager from '../Authentication/SessionManager.mjs'
 import UserGetter from '../User/UserGetter.mjs'
 import HistoryManager from '../History/HistoryManager.mjs'
+
+function getRequestUserId(req) {
+  return (
+    SessionManager.getLoggedInUserId(req.session) ||
+    req.oauth_user?._id?.toString() ||
+    null
+  )
+}
 
 function normalizeProjectPath(path) {
   return path.trim().replace(/^\/+/, '')
@@ -86,9 +96,10 @@ function collectProjectFileMetadata(
   context,
   fileEntries,
   sizeJobs,
-  parentPath = ''
+  parentPath = '',
+  isRoot = true
 ) {
-  const folderPath = parentPath ? `${parentPath}/${folder.name}` : ''
+  const folderPath = isRoot ? '' : filePathInProject(parentPath, folder.name)
   const uploader = context.lastUpdatedBy || context.owner
 
   for (const doc of folder.docs || []) {
@@ -137,7 +148,8 @@ function collectProjectFileMetadata(
       context,
       fileEntries,
       sizeJobs,
-      folderPath
+      folderPath,
+      false
     )
   }
 }
@@ -162,12 +174,12 @@ async function getBlobSizeInBytes(historyId, hash) {
   }
 }
 
-function serializeFolder(folder, parentPath = '') {
-  const folderPath = parentPath ? `${parentPath}/${folder.name}` : ''
+function serializeFolder(folder, parentPath = '', isRoot = true) {
+  const folderPath = isRoot ? '' : filePathInProject(parentPath, folder.name)
 
   const folders = (folder.folders || [])
     .filter(Boolean)
-    .map(childFolder => serializeFolder(childFolder, folderPath))
+    .map(childFolder => serializeFolder(childFolder, folderPath, false))
 
   const docs = (folder.docs || []).filter(Boolean).map(doc => ({
     _id: doc._id,
@@ -318,6 +330,30 @@ async function userProjectsStructureJson(req, res) {
   })
 }
 
+async function userProjectsSummaryJson(req, res) {
+  const userId = getRequestUserId(req)
+  if (!userId) {
+    return res.sendStatus(401)
+  }
+  const projectsByAccessLevel = await ProjectGetter.promises.findAllUsersProjects(
+    userId,
+    {
+      name: 1,
+    }
+  )
+  const projects = flattenProjectsByAccessLevel(projectsByAccessLevel).map(
+    ({ project }) => ({
+      project_id: project._id?.toString(),
+      projectName: project.name,
+    })
+  )
+
+  return res.json({
+    userId: userId.toString(),
+    projects,
+  })
+}
+
 async function downloadProjectEntityByPath(req, res, next) {
   const projectId = req.params.Project_id
   const rawPath = req.params[0] ?? req.query?.path
@@ -358,8 +394,72 @@ async function downloadProjectEntityByPath(req, res, next) {
   return FileStoreController.getFile(req, res, next)
 }
 
+function isLatexDocumentPath(projectPath) {
+  return projectPath.toLowerCase().endsWith('.tex')
+}
+
+async function downloadCompiledPdfByPath(req, res) {
+  const projectId = req.params.Project_id
+  const rawPath = req.params[0] ?? req.query?.path
+  const projectPath = rawPath ? normalizeProjectPath(String(rawPath)) : ''
+
+  if (!projectPath) {
+    return res.status(400).json({
+      error: 'path is required',
+    })
+  }
+
+  let located
+  try {
+    located = await ProjectLocator.promises.findElementByPath({
+      project_id: projectId,
+      path: projectPath,
+      exactCaseMatch: true,
+    })
+  } catch (err) {
+    if (err instanceof Errors.NotFoundError) {
+      return res.sendStatus(404)
+    }
+    throw err
+  }
+
+  if (located.type !== 'doc' || !isLatexDocumentPath(projectPath)) {
+    return res.status(400).json({
+      error: 'path must point to a latex document (.tex)',
+    })
+  }
+
+  const userId =
+    CompileController._getUserIdForCompile(req) || req.oauth_user?._id || null
+  let outputFiles
+  try {
+    ;({ outputFiles } = await CompileManager.promises.compile(projectId, userId, {
+      rootDoc_id: located.element._id.toString(),
+    }))
+  } catch {
+    return res.sendStatus(500)
+  }
+
+  const pdf = outputFiles?.find(file => file.path === 'output.pdf')
+  if (!pdf?.url) {
+    return res.sendStatus(500)
+  }
+
+  req.params.file = 'output.pdf'
+  await CompileController._proxyToClsi(
+    projectId,
+    'output-file',
+    pdf.url,
+    {},
+    req,
+    res
+  )
+}
+
 export default {
   projectStructureJson: expressify(projectStructureJson),
   userProjectsStructureJson: expressify(userProjectsStructureJson),
+  userProjectsSummaryJson: expressify(userProjectsSummaryJson),
   downloadProjectEntityByPath: expressify(downloadProjectEntityByPath),
+  downloadCompiledPdfByPath: expressify(downloadCompiledPdfByPath),
 }

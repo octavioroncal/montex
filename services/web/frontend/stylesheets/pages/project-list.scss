@@ -785,7 +785,7 @@ form.project-search {
         var(--bg-light-primary) 0%,
         var(--bg-info-03) 100%
       );
-      overflow: hidden;
+      overflow: visible;
     }
   }
 
@@ -810,8 +810,14 @@ form.project-search {
       }
     }
 
+    .welcome-message-cards-wrapper-single {
+      grid-template-columns: minmax(280px, 360px);
+      justify-content: center;
+    }
+
     .welcome-message-card-item {
       width: 100%;
+      position: relative;
     }
 
     .welcome-message-card-animated {
@@ -853,6 +859,7 @@ form.project-search {
       border-radius: var(--border-radius-medium);
       box-shadow: 0 12px 28px rgb(3 2 19 / 14%);
       margin-top: var(--spacing-03);
+      z-index: 1100;
     }
   }
 }
