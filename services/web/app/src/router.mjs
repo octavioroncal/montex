@@ -156,10 +156,6 @@ const rateLimiters = {
     points: 30,
     duration: 60,
   }),
-  projectContentApiToken: new RateLimiter('project-content-api-token', {
-    points: 10,
-    duration: 60,
-  }),
   readAndWriteToken: new RateLimiter('read-and-write-token', {
     points: 15,
     duration: 60,
@@ -250,7 +246,6 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
 
   publicApiRouter.post(
     '/api/v1/token',
-    RateLimiterMiddleware.rateLimit(rateLimiters.projectContentApiToken),
     ProjectContentApiAuthController.issueBearerToken
   )
 

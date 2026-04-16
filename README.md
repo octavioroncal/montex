@@ -138,6 +138,13 @@ Deploy that image with:
 MONTEX_IMAGE=oroncal/montex MONTEX_TAG=1.0.0 docker compose -f docker-compose.release.yml up -d
 ```
 
+Optional Git Bridge in release:
+
+```bash
+GIT_BRIDGE_ENABLED=true MONTEX_IMAGE=oroncal/montex MONTEX_TAG=1.0.0 \
+  docker compose -f docker-compose.release.yml up -d
+```
+
 ## Authors
 
 [The Overleaf Team](https://www.overleaf.com/about)\

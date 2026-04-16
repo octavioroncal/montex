@@ -101,3 +101,10 @@ echo
 echo "Release publicada correctamente:"
 echo "  - $REPO:$VERSION"
 echo "  - $REPO:latest"
+echo
+echo "Despliegue recomendado:"
+echo "  MONTEX_IMAGE=$REPO MONTEX_TAG=$VERSION docker compose -f docker-compose.release.yml up -d"
+echo
+echo "Comprobaciones:"
+echo "  docker compose -f docker-compose.release.yml ps"
+echo "  docker compose -f docker-compose.release.yml logs -f sharelatex"
