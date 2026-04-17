@@ -62,10 +62,12 @@ const UserRegistrationHandler = {
       userDetails
     )
 
-    await User.updateOne(
-      { _id: user._id },
-      { $set: { holdingAccount: false } }
-    ).exec()
+    const userUpdate = { holdingAccount: false }
+    if (user.holdingAccount && !user.ace?.spellCheckLanguage) {
+      userUpdate['ace.spellCheckLanguage'] = 'en'
+    }
+
+    await User.updateOne({ _id: user._id }, { $set: userUpdate }).exec()
 
     await AuthenticationManager.promises.setUserPassword(
       user,

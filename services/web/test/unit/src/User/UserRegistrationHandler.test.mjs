@@ -170,6 +170,18 @@ describe('UserRegistrationHandler', function () {
         await ctx.handler.promises.registerNewUser(ctx.passingRequest)
         const update = ctx.User.updateOne.args[0]
         assert.deepEqual(update[0], { _id: ctx.user._id })
+        assert.deepEqual(update[1], {
+          $set: {
+            holdingAccount: false,
+            'ace.spellCheckLanguage': 'en',
+          },
+        })
+      })
+
+      it('should not overwrite spellCheckLanguage if already present in holding account', async function (ctx) {
+        ctx.user.ace = { spellCheckLanguage: 'es' }
+        await ctx.handler.promises.registerNewUser(ctx.passingRequest)
+        const update = ctx.User.updateOne.args[0]
         assert.deepEqual(update[1], { $set: { holdingAccount: false } })
       })
     })
