@@ -272,10 +272,21 @@ async function _createBlankProject(
     'ace.spellCheckLanguage': 1,
     _id: 1,
   })
-  project.spellCheckLanguage = user.ace.spellCheckLanguage
+  if (!user) {
+    logger.warn(
+      { ownerId },
+      'owner user not found while creating project, using default settings'
+    )
+  } else if (!user.ace?.spellCheckLanguage) {
+    logger.warn(
+      { ownerId, userId: user._id },
+      'owner user missing ace.spellCheckLanguage, using default'
+    )
+  }
+  project.spellCheckLanguage = user?.ace?.spellCheckLanguage || 'en'
   const historyRangesSupportAssignment =
     await SplitTestHandler.promises.getAssignmentForUser(
-      user._id,
+      user?._id || ownerId,
       'history-ranges-support'
     )
   if (historyRangesSupportAssignment.variant === 'enabled') {

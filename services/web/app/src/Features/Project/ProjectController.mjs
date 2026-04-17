@@ -303,7 +303,7 @@ const _ProjectController = {
     }
   },
 
-  async newProject(req, res) {
+  async newProject(req, res, next) {
     const currentUser = SessionManager.getSessionUser(req.session)
     const {
       first_name: firstName,
@@ -314,31 +314,42 @@ const _ProjectController = {
     const projectName =
       req.body.projectName != null ? req.body.projectName.trim() : undefined
     const { template } = req.body
+    try {
+      const project = await (template === 'example'
+        ? ProjectCreationHandler.promises.createExampleProject(
+            userId,
+            projectName
+          )
+        : ProjectCreationHandler.promises.createBasicProject(
+            userId,
+            projectName
+          ))
 
-    const project = await (template === 'example'
-      ? ProjectCreationHandler.promises.createExampleProject(
-          userId,
-          projectName
-        )
-      : ProjectCreationHandler.promises.createBasicProject(userId, projectName))
+      ProjectAuditLogHandler.addEntryIfManagedInBackground(
+        project._id,
+        'project-created',
+        project.owner_ref,
+        req.ip
+      )
 
-    ProjectAuditLogHandler.addEntryIfManagedInBackground(
-      project._id,
-      'project-created',
-      project.owner_ref,
-      req.ip
-    )
-
-    res.json({
-      project_id: project._id,
-      owner_ref: project.owner_ref,
-      owner: {
-        first_name: firstName,
-        last_name: lastName,
-        email,
-        _id: userId,
-      },
-    })
+      res.json({
+        project_id: project._id,
+        owner_ref: project.owner_ref,
+        owner: {
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          _id: userId,
+        },
+      })
+    } catch (err) {
+      OError.tag(err, 'error creating project', {
+        userId,
+        template,
+        projectName,
+      })
+      return next(err)
+    }
   },
 
   async renameProject(req, res) {
