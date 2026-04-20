@@ -793,6 +793,26 @@ describe('AuthenticationController', function () {
       })
     })
 
+    describe('with bearer auth on project content api route with /api/v1 prefix', function () {
+      beforeEach(function (ctx) {
+        ctx.req._parsedUrl.pathname = '/api/v1/user/projects/summary'
+        ctx.req.headers.authorization = 'Bearer some-token'
+        ctx.AuthenticationController.requireGlobalLogin(
+          ctx.req,
+          ctx.res,
+          ctx.next
+        )
+      })
+
+      it('should call next() directly', function (ctx) {
+        ctx.next.called.should.equal(true)
+      })
+
+      it('should not pass the request onto requirePrivateApiAuth middleware', function (ctx) {
+        ctx.middleware.called.should.equal(false)
+      })
+    })
+
     describe('with bearer auth on non project content api route', function () {
       beforeEach(function (ctx) {
         ctx.req._parsedUrl.pathname = '/project'
@@ -806,6 +826,26 @@ describe('AuthenticationController', function () {
 
       it('should pass the request onto requirePrivateApiAuth middleware', function (ctx) {
         ctx.middleware.calledWith(ctx.req, ctx.res, ctx.next).should.equal(true)
+      })
+    })
+
+    describe('with project content bearer token on non project content api route', function () {
+      beforeEach(function (ctx) {
+        ctx.req._parsedUrl.pathname = '/project'
+        ctx.req.headers.authorization = 'Bearer olc_some-token'
+        ctx.AuthenticationController.requireGlobalLogin(
+          ctx.req,
+          ctx.res,
+          ctx.next
+        )
+      })
+
+      it('should call next() directly', function (ctx) {
+        ctx.next.called.should.equal(true)
+      })
+
+      it('should not pass the request onto requirePrivateApiAuth middleware', function (ctx) {
+        ctx.middleware.called.should.equal(false)
       })
     })
 

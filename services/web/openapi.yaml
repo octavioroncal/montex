@@ -54,6 +54,22 @@ paths:
                 invalid:
                   value:
                     error: invalid_credentials
+  /api/v1/user/projects/summary:
+    get:
+      operationId: getUserProjectsSummaryV1Alias
+      summary: Obtener listado simple de proyectos del usuario (alias v1)
+      description: Alias de `/user/projects/summary`.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Listado de proyectos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectSummaryResponse"
+        "401":
+          description: No autenticado.
   /user/projects/summary:
     get:
       operationId: getUserProjectsSummary
@@ -146,6 +162,36 @@ paths:
           description: Proyecto no encontrado.
         "500":
           description: Error interno.
+  /api/v1/project/{Project_id}/structure:
+    get:
+      operationId: getProjectStructureV1Alias
+      summary: Obtener estructura de un proyecto (alias v1)
+      description: Alias de `/project/{Project_id}/structure`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Project_id
+          in: path
+          required: true
+          description: ID del proyecto.
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Estructura del proyecto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectStructureResponse"
+        "401":
+          description: No autenticado.
+        "403":
+          description: Sin permisos para leer el proyecto.
+        "404":
+          description: Proyecto no encontrado.
+        "500":
+          description: Error interno.
   /project/{Project_id}/download/compiled-pdf/by-path/{path}:
     get:
       operationId: downloadCompiledPdfByPath
@@ -198,6 +244,47 @@ paths:
                 nonLatex:
                   value:
                     error: path must point to a latex document (.tex)
+        "401":
+          description: No autenticado.
+        "403":
+          description: Sin permisos para leer el proyecto.
+        "404":
+          description: Proyecto o ruta no encontrada.
+        "500":
+          description: Error de compilación o descarga.
+  /api/v1/project/{Project_id}/download/compiled-pdf/by-path/{path}:
+    get:
+      operationId: downloadCompiledPdfByPathV1Alias
+      summary: Compilar y descargar PDF desde una subruta LaTeX (alias v1)
+      description: Alias de `/project/{Project_id}/download/compiled-pdf/by-path/{path}`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Project_id
+          in: path
+          required: true
+          description: ID del proyecto.
+          schema:
+            type: string
+            minLength: 1
+        - name: path
+          in: path
+          required: true
+          allowReserved: true
+          description: Subruta del documento `.tex` dentro del proyecto.
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: PDF compilado.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Ruta inválida o no apunta a un documento LaTeX.
         "401":
           description: No autenticado.
         "403":
@@ -263,6 +350,40 @@ paths:
                 missingPath:
                   value:
                     error: path is required
+        "401":
+          description: No autenticado.
+        "403":
+          description: Sin permisos para leer el proyecto.
+        "404":
+          description: Proyecto o ruta no encontrada.
+  /api/v1/project/{Project_id}/download/by-path/{path}:
+    get:
+      operationId: downloadProjectEntityByPathV1Alias
+      summary: Descargar fichero del proyecto por subruta (alias v1)
+      description: Alias de `/project/{Project_id}/download/by-path/{path}`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Project_id
+          in: path
+          required: true
+          description: ID del proyecto.
+          schema:
+            type: string
+            minLength: 1
+        - name: path
+          in: path
+          required: true
+          allowReserved: true
+          description: Subruta del fichero dentro del proyecto.
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Contenido del fichero solicitado.
+        "400":
+          description: La ruta es inválida o apunta a una carpeta.
         "401":
           description: No autenticado.
         "403":

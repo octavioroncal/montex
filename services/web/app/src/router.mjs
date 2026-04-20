@@ -533,6 +533,11 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     ProjectContentApiController.userProjectsSummaryJson
   )
   webRouter.get(
+    '/api/v1/user/projects/summary',
+    ProjectContentApiAuthMiddleware.requireSessionOrBearer,
+    ProjectContentApiController.userProjectsSummaryJson
+  )
+  webRouter.get(
     '/project/:Project_id/entities',
     AuthenticationController.requireLogin(),
     AuthorizationMiddleware.ensureUserCanReadProject,
@@ -545,13 +550,31 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     ProjectContentApiController.projectStructureJson
   )
   webRouter.get(
+    '/api/v1/project/:Project_id/structure',
+    ProjectContentApiAuthMiddleware.attachBearerUser,
+    AuthorizationMiddleware.ensureUserCanReadProject,
+    ProjectContentApiController.projectStructureJson
+  )
+  webRouter.get(
     '/project/:Project_id/download/by-path/*',
     ProjectContentApiAuthMiddleware.attachBearerUser,
     AuthorizationMiddleware.ensureUserCanReadProject,
     ProjectContentApiController.downloadProjectEntityByPath
   )
   webRouter.get(
+    '/api/v1/project/:Project_id/download/by-path/*',
+    ProjectContentApiAuthMiddleware.attachBearerUser,
+    AuthorizationMiddleware.ensureUserCanReadProject,
+    ProjectContentApiController.downloadProjectEntityByPath
+  )
+  webRouter.get(
     '/project/:Project_id/download/compiled-pdf/by-path/*',
+    ProjectContentApiAuthMiddleware.attachBearerUser,
+    AuthorizationMiddleware.ensureUserCanReadProject,
+    ProjectContentApiController.downloadCompiledPdfByPath
+  )
+  webRouter.get(
+    '/api/v1/project/:Project_id/download/compiled-pdf/by-path/*',
     ProjectContentApiAuthMiddleware.attachBearerUser,
     AuthorizationMiddleware.ensureUserCanReadProject,
     ProjectContentApiController.downloadCompiledPdfByPath

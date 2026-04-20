@@ -28,10 +28,10 @@ import EmailHelper from '../Helpers/EmailHelper.mjs'
 
 const { hasAdminAccess } = AdminAuthorizationHelper
 const PROJECT_CONTENT_API_PATH_PATTERNS = [
-  /^\/user\/projects\/summary$/,
-  /^\/project\/[a-f0-9]{24}\/structure$/,
-  /^\/project\/[a-f0-9]{24}\/download\/by-path\/.+$/,
-  /^\/project\/[a-f0-9]{24}\/download\/compiled-pdf\/by-path\/.+$/,
+  /^\/(?:api\/v1\/)?user\/projects\/summary\/?$/,
+  /^\/(?:api\/v1\/)?project\/[a-f0-9]{24}\/structure\/?$/,
+  /^\/(?:api\/v1\/)?project\/[a-f0-9]{24}\/download\/by-path\/.+$/,
+  /^\/(?:api\/v1\/)?project\/[a-f0-9]{24}\/download\/compiled-pdf\/by-path\/.+$/,
 ]
 
 function send401WithChallenge(res) {
@@ -44,9 +44,15 @@ function shouldSkipGlobalLoginForBearer(pathname, authorizationHeader) {
     return false
   }
 
-  const [scheme] = authorizationHeader.trim().split(/\s+/, 1)
-  if (scheme?.toLowerCase() !== 'bearer') {
+  const [scheme, token] = authorizationHeader.trim().split(/\s+/, 2)
+  if (scheme?.toLowerCase() !== 'bearer' || !token) {
     return false
+  }
+
+  // Project Content API personal access tokens always use this prefix.
+  // Bypass global login regardless of path rewriting done by proxies.
+  if (token.startsWith('olc_')) {
+    return true
   }
 
   return PROJECT_CONTENT_API_PATH_PATTERNS.some(pattern =>
