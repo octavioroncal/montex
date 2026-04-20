@@ -85,6 +85,36 @@ describe('ProjectContentApiAuthMiddleware', function () {
     })
   })
 
+  describe('requireBearer', function () {
+    it('returns 401 when bearer token is missing', async function (ctx) {
+      await ctx.middleware.requireBearer(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(401)
+      expect(ctx.res.headers['WWW-Authenticate']).to.equal('Bearer')
+      expect(ctx.next.called).to.equal(false)
+    })
+
+    it('returns 401 when bearer token is invalid', async function (ctx) {
+      ctx.req.headers.authorization = 'Bearer invalid-token'
+      ctx.ProjectContentApiTokenManager.getUserId.resolves(null)
+
+      await ctx.middleware.requireBearer(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(401)
+      expect(ctx.next.called).to.equal(false)
+    })
+
+    it('continues when bearer token is valid', async function (ctx) {
+      ctx.req.headers.authorization = 'Bearer valid-token'
+      ctx.ProjectContentApiTokenManager.getUserId.resolves('oauth-user-id')
+
+      await ctx.middleware.requireBearer(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.req.oauth_user).to.deep.equal({ _id: 'oauth-user-id' })
+      expect(ctx.next.calledOnce).to.equal(true)
+    })
+  })
+
   describe('requireSessionOrBearer', function () {
     it('continues when user is logged in by session', async function (ctx) {
       ctx.SessionManager.getLoggedInUserId.returns('session-user')

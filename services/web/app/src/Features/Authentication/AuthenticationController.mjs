@@ -27,37 +27,10 @@ import { handleAuthenticateErrors } from './AuthenticationErrors.mjs'
 import EmailHelper from '../Helpers/EmailHelper.mjs'
 
 const { hasAdminAccess } = AdminAuthorizationHelper
-const PROJECT_CONTENT_API_PATH_PATTERNS = [
-  /^\/(?:api\/v1\/)?user\/projects\/summary\/?$/,
-  /^\/(?:api\/v1\/)?project\/[a-f0-9]{24}\/structure\/?$/,
-  /^\/(?:api\/v1\/)?project\/[a-f0-9]{24}\/download\/by-path\/.+$/,
-  /^\/(?:api\/v1\/)?project\/[a-f0-9]{24}\/download\/compiled-pdf\/by-path\/.+$/,
-]
 
 function send401WithChallenge(res) {
   res.setHeader('WWW-Authenticate', 'OverleafLogin')
   res.sendStatus(401)
-}
-
-function shouldSkipGlobalLoginForBearer(pathname, authorizationHeader) {
-  if (typeof authorizationHeader !== 'string') {
-    return false
-  }
-
-  const [scheme, token] = authorizationHeader.trim().split(/\s+/, 2)
-  if (scheme?.toLowerCase() !== 'bearer' || !token) {
-    return false
-  }
-
-  // Project Content API personal access tokens always use this prefix.
-  // Bypass global login regardless of path rewriting done by proxies.
-  if (token.startsWith('olc_')) {
-    return true
-  }
-
-  return PROJECT_CONTENT_API_PATH_PATTERNS.some(pattern =>
-    pattern.test(pathname)
-  )
 }
 
 function checkCredentials(userDetailsMap, user, password) {
@@ -451,14 +424,6 @@ const AuthenticationController = {
     }
 
     if (req.headers.authorization != null) {
-      if (
-        shouldSkipGlobalLoginForBearer(
-          req._parsedUrl.pathname,
-          req.headers.authorization
-        )
-      ) {
-        return next()
-      }
       AuthenticationController.requirePrivateApiAuth()(req, res, next)
     } else if (SessionManager.isUserLoggedIn(req.session)) {
       next()

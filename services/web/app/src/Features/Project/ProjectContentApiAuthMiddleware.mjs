@@ -25,6 +25,21 @@ function sendUnauthorized(res) {
 }
 
 const ProjectContentApiAuthMiddleware = {
+  async requireBearer(req, res, next) {
+    const token = getBearerToken(req)
+    if (!token) {
+      return sendUnauthorized(res)
+    }
+
+    const userId = await ProjectContentApiTokenManager.getUserId(token)
+    if (!userId) {
+      return sendUnauthorized(res)
+    }
+
+    setOauthUser(req, userId)
+    return next()
+  },
+
   async attachBearerUser(req, res, next) {
     const sessionUserId = SessionManager.getLoggedInUserId(req.session)
     if (sessionUserId) {
