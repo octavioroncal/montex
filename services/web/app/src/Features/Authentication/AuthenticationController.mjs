@@ -27,10 +27,31 @@ import { handleAuthenticateErrors } from './AuthenticationErrors.mjs'
 import EmailHelper from '../Helpers/EmailHelper.mjs'
 
 const { hasAdminAccess } = AdminAuthorizationHelper
+const PROJECT_CONTENT_API_PATH_PATTERNS = [
+  /^\/user\/projects\/summary$/,
+  /^\/project\/[a-f0-9]{24}\/structure$/,
+  /^\/project\/[a-f0-9]{24}\/download\/by-path\/.+$/,
+  /^\/project\/[a-f0-9]{24}\/download\/compiled-pdf\/by-path\/.+$/,
+]
 
 function send401WithChallenge(res) {
   res.setHeader('WWW-Authenticate', 'OverleafLogin')
   res.sendStatus(401)
+}
+
+function shouldSkipGlobalLoginForBearer(pathname, authorizationHeader) {
+  if (typeof authorizationHeader !== 'string') {
+    return false
+  }
+
+  const [scheme] = authorizationHeader.trim().split(/\s+/, 1)
+  if (scheme?.toLowerCase() !== 'bearer') {
+    return false
+  }
+
+  return PROJECT_CONTENT_API_PATH_PATTERNS.some(pattern =>
+    pattern.test(pathname)
+  )
 }
 
 function checkCredentials(userDetailsMap, user, password) {
@@ -424,6 +445,14 @@ const AuthenticationController = {
     }
 
     if (req.headers.authorization != null) {
+      if (
+        shouldSkipGlobalLoginForBearer(
+          req._parsedUrl.pathname,
+          req.headers.authorization
+        )
+      ) {
+        return next()
+      }
       AuthenticationController.requirePrivateApiAuth()(req, res, next)
     } else if (SessionManager.isUserLoggedIn(req.session)) {
       next()
