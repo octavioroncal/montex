@@ -567,15 +567,34 @@ describe('ProjectContentApiController', function () {
       ).to.equal(true)
     })
 
-    it('returns 500 when compile does not produce output.pdf', async function (ctx) {
+    it('returns 422 when compile does not produce output.pdf', async function (ctx) {
       ctx.req.params[0] = 'src/main.tex'
       ctx.ProjectLocator.promises.findElementByPath.resolves({
         type: 'doc',
         element: { _id: 'doc-id' },
       })
       ctx.CompileManager.promises.compile.resolves({
+        status: 'failure',
         outputFiles: [{ path: 'other.log', url: '/foo' }],
       })
+
+      await ctx.controller.downloadCompiledPdfByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(422)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        error: 'compile did not produce output.pdf',
+        compileStatus: 'failure',
+        outputFiles: [{ path: 'other.log' }],
+      })
+    })
+
+    it('returns 500 when compile request throws', async function (ctx) {
+      ctx.req.params[0] = 'src/main.tex'
+      ctx.ProjectLocator.promises.findElementByPath.resolves({
+        type: 'doc',
+        element: { _id: 'doc-id' },
+      })
+      ctx.CompileManager.promises.compile.rejects(new Error('boom'))
 
       await ctx.controller.downloadCompiledPdfByPath(ctx.req, ctx.res, ctx.next)
 

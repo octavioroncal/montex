@@ -143,8 +143,10 @@ paths:
           description: Sin permisos para leer el proyecto.
         "404":
           description: Proyecto o ruta no encontrada.
+        "422":
+          description: La compilación terminó sin generar `output.pdf`.
         "500":
-          description: Error de compilación o descarga.
+          description: Error interno al lanzar la compilación.
   /api/v1/project/{Project_id}/download/by-path/{path}:
     get:
       operationId: downloadProjectEntityByPathApiV1

@@ -482,30 +482,33 @@ if [[ -n "$PROJECT_ID" ]]; then
   fi
 
   if is_true "$WITH_COMPILED_PDF"; then
-    compile_path="$sample_tex_path"
-    if [[ -z "$compile_path" ]]; then
-      compile_path=".montex-api-check/compile-check.tex"
-      compile_payload_file="$OUT_DIR/08_compile_payload.tex"
-      cat > "$compile_payload_file" <<'EOF'
+    created_compile_check="false"
+    # Smoke test del endpoint: usar siempre un .tex mínimo controlado.
+    # Evita falsos negativos por fallos de compilación propios del proyecto.
+    compile_path=".montex-api-check/compile-check.tex"
+    compile_payload_file="$OUT_DIR/08_compile_payload.tex"
+    cat > "$compile_payload_file" <<'EOF'
 \documentclass{article}
 \begin{document}
 Montex API compile check
 \end{document}
 EOF
-      encoded_compile_put_path="$(urlencode "$compile_path")"
-      compile_upsert_status="$(run_request \
-        "PUT" \
-        "$BASE_URL/api/v1/project/$PROJECT_ID/file/by-path/$encoded_compile_put_path" \
-        "$OUT_DIR/08_compile_upsert_headers.txt" \
-        "$OUT_DIR/08_compile_upsert_body.json" \
-        -H "Accept: application/json" \
-        -H "Authorization: Bearer $token" \
-        -H "Content-Type: text/plain" \
-        --data-binary "@$compile_payload_file")"
-      log_step "Preparar tex para compile ($compile_path) -> HTTP $compile_upsert_status"
-      if [[ "$compile_upsert_status" != "200" && "$compile_upsert_status" != "201" ]]; then
-        compile_path=""
-      fi
+    encoded_compile_put_path="$(urlencode "$compile_path")"
+    compile_upsert_status="$(run_request \
+      "PUT" \
+      "$BASE_URL/api/v1/project/$PROJECT_ID/file/by-path/$encoded_compile_put_path" \
+      "$OUT_DIR/08_compile_upsert_headers.txt" \
+      "$OUT_DIR/08_compile_upsert_body.json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer $token" \
+      -H "Content-Type: text/plain" \
+      --data-binary "@$compile_payload_file")"
+    log_step "Preparar tex para compile ($compile_path) -> HTTP $compile_upsert_status"
+    if [[ "$compile_upsert_status" != "200" && "$compile_upsert_status" != "201" ]]; then
+      # Fallback: si no se puede crear el .tex temporal, intentar con un .tex existente.
+      compile_path="$sample_tex_path"
+    else
+      created_compile_check="true"
     fi
 
     if [[ -n "$compile_path" ]]; then
@@ -521,10 +524,23 @@ EOF
       if is_2xx "$compiled_pdf_status"; then
         pdf_size="$(wc -c < "$OUT_DIR/09_compiled_pdf_body.pdf" | tr -d ' ')"
         echo "    compiled pdf bytes: $pdf_size"
+      elif [[ "$compiled_pdf_status" == "422" ]]; then
+        echo "    nota: la compilación no generó output.pdf (revisa recursos del proyecto)."
       elif [[ "$compiled_pdf_status" == "500" ]]; then
         echo "    nota: error interno al compilar PDF (revisa clsi/compilación)."
       elif [[ "$compiled_pdf_status" == "404" ]]; then
         echo "    nota: endpoint /download/compiled-pdf/by-path no disponible."
+      fi
+
+      if [[ "$created_compile_check" == "true" ]]; then
+        cleanup_compile_status="$(run_request \
+          "DELETE" \
+          "$BASE_URL/api/v1/project/$PROJECT_ID/entity/by-path/$encoded_compile_path" \
+          "$OUT_DIR/09_cleanup_compile_headers.txt" \
+          "$OUT_DIR/09_cleanup_compile_body.txt" \
+          -H "Accept: application/json" \
+          -H "Authorization: Bearer $token")"
+        log_step "Limpiar tex temporal ($compile_path) -> HTTP $cleanup_compile_status"
       fi
     else
       log_step "Saltado compiled-pdf/by-path: no se encontró/preparó ruta .tex"

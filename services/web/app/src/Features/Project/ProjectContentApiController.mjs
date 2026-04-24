@@ -461,18 +461,23 @@ async function downloadCompiledPdfByPath(req, res) {
 
   const userId =
     CompileController._getUserIdForCompile(req) || req.oauth_user?._id || null
-  let outputFiles
+  let compileResult
   try {
-    ;({ outputFiles } = await CompileManager.promises.compile(projectId, userId, {
+    compileResult = await CompileManager.promises.compile(projectId, userId, {
       rootDoc_id: located.element._id.toString(),
-    }))
+    })
   } catch {
     return res.sendStatus(500)
   }
 
+  const outputFiles = compileResult?.outputFiles || []
   const pdf = outputFiles?.find(file => file.path === 'output.pdf')
   if (!pdf?.url) {
-    return res.sendStatus(500)
+    return res.status(422).json({
+      error: 'compile did not produce output.pdf',
+      compileStatus: compileResult?.status || null,
+      outputFiles: outputFiles.map(({ path, type }) => ({ path, type })),
+    })
   }
 
   req.params.file = 'output.pdf'
