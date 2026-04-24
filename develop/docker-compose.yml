@@ -73,12 +73,14 @@ services:
       dockerfile: services/filestore/Dockerfile
     env_file:
       - dev.env
-    #    environment:
-    #      - ENABLE_CONVERSIONS=true
+    environment:
+      OVERLEAF_EDITOR_BLOBS_BUCKET: "/buckets/blobs"
+      OVERLEAF_EDITOR_PROJECT_BLOBS_BUCKET: "/buckets/project_blobs"
     volumes:
       - filestore-public-files:/overleaf/services/filestore/public_files
       - filestore-template-files:/overleaf/services/filestore/template_files
       - filestore-uploads:/overleaf/services/filestore/uploads
+      - history-v1-buckets:/buckets
 
   history-v1:
     build:
@@ -168,7 +170,13 @@ services:
       - NODE_ENV=development
       - ADMIN_PRIVILEGE_AVAILABLE=true
       - OVERLEAF_ALLOW_PUBLIC_ACCESS=true
-    command: ["node", "app.mjs"]
+    user: root
+    command:
+      [
+        "sh",
+        "-lc",
+        "mkdir -p /overleaf/services/web/data/uploads && chown -R node:node /overleaf/services/web/data && exec su node -s /bin/sh -c 'node app.mjs'",
+      ]
     volumes:
       - sharelatex-data:/var/lib/overleaf
       - web-data:/overleaf/services/web/data
@@ -196,7 +204,7 @@ services:
     command:
       ["npx", "webpack", "serve", "--config", "webpack.config.dev-env.js"]
     ports:
-      - "127.0.0.1:80:3808"
+      - "0.0.0.0:80:3808"
     volumes:
       - ./webpack.config.dev-env.js:/overleaf/services/web/webpack.config.dev-env.js
 
