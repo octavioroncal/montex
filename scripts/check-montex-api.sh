@@ -359,14 +359,74 @@ if [[ -n "$PROJECT_ID" ]]; then
     log_step "Saltado download/by-path: no hubo path usable (ni por PUT ni en estructura)"
   fi
 
+  cleanup_path="$CHECK_PATH"
+  if [[ "$compare_with_payload" == "true" ]]; then
+    move_target_path="${CHECK_PATH}.renamed"
+    move_payload="$(jq -nc --arg from "$CHECK_PATH" --arg to "$move_target_path" '{from_path:$from,to_path:$to}')"
+    move_status="$(run_request \
+      "POST" \
+      "$BASE_URL/api/v1/project/$PROJECT_ID/entity/move" \
+      "$OUT_DIR/08_move_headers.txt" \
+      "$OUT_DIR/08_move_body.json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer $token" \
+      -H "Content-Type: application/json" \
+      --data "$move_payload")"
+    log_step "/api/v1/project/$PROJECT_ID/entity/move ($CHECK_PATH -> $move_target_path) -> HTTP $move_status"
+
+    if is_2xx "$move_status"; then
+      cleanup_path="$move_target_path"
+      encoded_move_path="$(urlencode "$move_target_path")"
+      move_download_status="$(run_request \
+        "GET" \
+        "$BASE_URL/api/v1/project/$PROJECT_ID/download/by-path/$encoded_move_path" \
+        "$OUT_DIR/08_move_download_headers.txt" \
+        "$OUT_DIR/08_move_download_body.bin" \
+        -H "Accept: */*" \
+        -H "Authorization: Bearer $token")"
+      log_step "Verificar move GET /api/v1/project/$PROJECT_ID/download/by-path/$move_target_path -> HTTP $move_download_status"
+      if is_2xx "$move_download_status"; then
+        if cmp -s "$upsert_payload_file" "$OUT_DIR/08_move_download_body.bin"; then
+          echo "    move/rename roundtrip: OK"
+        else
+          echo "    move/rename roundtrip: ERROR (contenido distinto)"
+        fi
+      fi
+
+      old_path_after_move_status="$(run_request \
+        "GET" \
+        "$BASE_URL/api/v1/project/$PROJECT_ID/download/by-path/$encoded_check_path" \
+        "$OUT_DIR/08_move_old_path_headers.txt" \
+        "$OUT_DIR/08_move_old_path_body.bin" \
+        -H "Accept: */*" \
+        -H "Authorization: Bearer $token")"
+      log_step "Verificar origen tras move GET /api/v1/project/$PROJECT_ID/download/by-path/$CHECK_PATH -> HTTP $old_path_after_move_status"
+      if [[ "$old_path_after_move_status" == "404" ]]; then
+        echo "    move/rename: origen ya no existe (OK)"
+      fi
+    elif [[ "$move_status" == "400" ]]; then
+      echo "    nota: move/rename rechazado por ruta inválida o conflicto de nombre."
+    elif [[ "$move_status" == "403" ]]; then
+      move_content_type="$(get_header_value "$OUT_DIR/08_move_headers.txt" "content-type")"
+      if [[ "$move_content_type" == text/html* ]] && grep -qi 'csrf' "$OUT_DIR/08_move_body.json"; then
+        echo "    nota: 403 por CSRF (probable ruta /api/v1/.../entity/move no desplegada en esta instancia)."
+      else
+        echo "    nota: token sin permisos de escritura para mover/renombrar en este proyecto."
+      fi
+    elif [[ "$move_status" == "404" ]]; then
+      echo "    nota: endpoint de move no disponible o ruta/proyecto no encontrado."
+    fi
+  fi
+
+  encoded_cleanup_path="$(urlencode "$cleanup_path")"
   delete_status="$(run_request \
     "DELETE" \
-    "$BASE_URL/api/v1/project/$PROJECT_ID/entity/by-path/$encoded_check_path" \
+    "$BASE_URL/api/v1/project/$PROJECT_ID/entity/by-path/$encoded_cleanup_path" \
     "$OUT_DIR/08_delete_by_path_headers.txt" \
     "$OUT_DIR/08_delete_by_path_body.txt" \
     -H "Accept: application/json" \
     -H "Authorization: Bearer $token")"
-  log_step "/api/v1/project/$PROJECT_ID/entity/by-path/$CHECK_PATH -> HTTP $delete_status"
+  log_step "/api/v1/project/$PROJECT_ID/entity/by-path/$cleanup_path -> HTTP $delete_status"
 
   delete_content_type="$(get_header_value "$OUT_DIR/08_delete_by_path_headers.txt" "content-type")"
   if [[ "$delete_status" == "403" ]]; then
@@ -386,12 +446,12 @@ if [[ -n "$PROJECT_ID" ]]; then
   if [[ "$compare_with_payload" == "true" && ( "$delete_status" == "200" || "$delete_status" == "204" ) ]]; then
     verify_delete_status="$(run_request \
       "GET" \
-      "$BASE_URL/api/v1/project/$PROJECT_ID/download/by-path/$encoded_check_path" \
+      "$BASE_URL/api/v1/project/$PROJECT_ID/download/by-path/$encoded_cleanup_path" \
       "$OUT_DIR/08_verify_delete_headers.txt" \
       "$OUT_DIR/08_verify_delete_body.bin" \
       -H "Accept: */*" \
       -H "Authorization: Bearer $token")"
-    log_step "Verificar borrado GET /api/v1/project/$PROJECT_ID/download/by-path/$CHECK_PATH -> HTTP $verify_delete_status"
+    log_step "Verificar borrado GET /api/v1/project/$PROJECT_ID/download/by-path/$cleanup_path -> HTTP $verify_delete_status"
     if [[ "$verify_delete_status" == "404" ]]; then
       echo "    delete by-path: OK (ya no existe)"
     fi

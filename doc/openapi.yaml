@@ -281,6 +281,50 @@ paths:
           description: Proyecto no encontrado.
         "415":
           description: Tipo de contenido no soportado.
+  /api/v1/project/{Project_id}/entity/move:
+    post:
+      operationId: moveProjectEntityByPathApiV1
+      summary: Mover o renombrar una entidad del proyecto por subruta
+      description: |
+        Mueve una entidad (fichero, documento o carpeta) desde una subruta origen
+        a una subruta destino.
+        Si la carpeta destino coincide con la carpeta origen, la operación actúa
+        como un renombrado.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Project_id
+          in: path
+          required: true
+          description: ID del proyecto.
+          schema:
+            type: string
+            minLength: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveEntityByPathRequest"
+      responses:
+        "200":
+          description: Entidad movida y/o renombrada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoveEntityByPathResponse"
+        "400":
+          description: Rutas inválidas o conflicto de nombres.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: No autenticado.
+        "403":
+          description: Sin permisos para escribir en el proyecto.
+        "404":
+          description: Proyecto, ruta origen o carpeta destino no encontrada.
   /api/v1/project/{Project_id}/entity/by-path/{path}:
     delete:
       operationId: deleteProjectEntityByPathApiV1
@@ -491,6 +535,43 @@ components:
         path:
           type: string
         created:
+          type: boolean
+    MoveEntityByPathRequest:
+      type: object
+      required:
+        - from_path
+        - to_path
+      properties:
+        from_path:
+          type: string
+          minLength: 1
+          example: src/main.tex
+        to_path:
+          type: string
+          minLength: 1
+          example: archive/main-renamed.tex
+    MoveEntityByPathResponse:
+      type: object
+      required:
+        - entity_id
+        - entity_type
+        - path
+        - moved
+        - renamed
+      properties:
+        entity_id:
+          type: string
+        entity_type:
+          type: string
+          enum:
+            - doc
+            - file
+            - folder
+        path:
+          type: string
+        moved:
+          type: boolean
+        renamed:
           type: boolean
     ErrorResponse:
       type: object

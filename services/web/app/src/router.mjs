@@ -289,6 +289,12 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     AuthorizationMiddleware.ensureUserCanWriteProjectContent,
     ProjectContentApiController.deleteProjectEntityByPath
   )
+  publicApiRouter.post(
+    '/api/v1/project/:Project_id/entity/move',
+    ProjectContentApiAuthMiddleware.requireBearer,
+    AuthorizationMiddleware.ensureUserCanWriteProjectContent,
+    ProjectContentApiController.moveProjectEntityByPath
+  )
 
   webRouter.get(
     '/compromised-password',

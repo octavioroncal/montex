@@ -31,6 +31,20 @@ function normalizeProjectPath(path) {
   return path.trim().replace(/^\/+/, '')
 }
 
+function splitParentPathAndEntityName(projectPath) {
+  const separatorIndex = projectPath.lastIndexOf('/')
+  if (separatorIndex === -1) {
+    return {
+      parentPath: '',
+      entityName: projectPath,
+    }
+  }
+  return {
+    parentPath: projectPath.slice(0, separatorIndex),
+    entityName: projectPath.slice(separatorIndex + 1),
+  }
+}
+
 function getBaseContentType(req) {
   const contentType = req.headers?.['content-type']
   if (typeof contentType !== 'string') {
@@ -590,6 +604,125 @@ async function deleteProjectEntityByPath(req, res) {
   }
 }
 
+async function moveProjectEntityByPath(req, res) {
+  const projectId = req.params.Project_id
+  const userId = getRequestUserId(req)
+  const rawFromPath = req.body?.from_path
+  const rawToPath = req.body?.to_path
+  const fromPath =
+    typeof rawFromPath === 'string' ? normalizeProjectPath(rawFromPath) : ''
+  const toPath =
+    typeof rawToPath === 'string' ? normalizeProjectPath(rawToPath) : ''
+
+  if (!fromPath || !toPath) {
+    return res.status(400).json({
+      error: 'from_path and to_path are required',
+    })
+  }
+
+  if (!userId) {
+    return res.sendStatus(401)
+  }
+
+  let source
+  try {
+    source = await ProjectLocator.promises.findElementByPath({
+      project_id: projectId,
+      path: fromPath,
+      exactCaseMatch: true,
+    })
+  } catch (err) {
+    if (err instanceof Errors.NotFoundError) {
+      return res.sendStatus(404)
+    }
+    throw err
+  }
+
+  const { parentPath: sourceParentPath, entityName: sourceEntityName } =
+    splitParentPathAndEntityName(fromPath)
+  const { parentPath: destinationParentPath, entityName: destinationEntityName } =
+    splitParentPathAndEntityName(toPath)
+  const entityId = source.element._id.toString()
+
+  if (!destinationEntityName) {
+    return res.status(400).json({
+      error: 'invalid_path',
+    })
+  }
+
+  if (fromPath === toPath) {
+    return res.status(200).json({
+      entity_id: entityId,
+      entity_type: source.type,
+      path: toPath,
+      moved: false,
+      renamed: false,
+    })
+  }
+
+  try {
+    let moved = false
+    let renamed = false
+
+    if (sourceParentPath !== destinationParentPath) {
+      const destinationParent = await ProjectLocator.promises.findElementByPath({
+        project_id: projectId,
+        path: destinationParentPath,
+        exactCaseMatch: true,
+      })
+
+      if (destinationParent.type !== 'folder') {
+        return res.status(400).json({
+          error: 'invalid_path',
+        })
+      }
+
+      await ProjectEntityUpdateHandler.promises.moveEntity(
+        projectId,
+        source.element._id,
+        destinationParent.element._id,
+        source.type,
+        userId,
+        'project_content_api'
+      )
+      moved = true
+    }
+
+    if (sourceEntityName !== destinationEntityName) {
+      await ProjectEntityUpdateHandler.promises.renameEntity(
+        projectId,
+        source.element._id,
+        source.type,
+        destinationEntityName,
+        userId,
+        'project_content_api'
+      )
+      renamed = true
+    }
+
+    return res.status(200).json({
+      entity_id: entityId,
+      entity_type: source.type,
+      path: toPath,
+      moved,
+      renamed,
+    })
+  } catch (err) {
+    if (
+      err instanceof Errors.InvalidNameError ||
+      err instanceof Errors.DuplicateNameError
+    ) {
+      return res.status(400).json({
+        error: 'invalid_path',
+      })
+    }
+    if (err instanceof Errors.NotFoundError) {
+      return res.sendStatus(404)
+    }
+    throw err
+  }
+}
+
 export default {
   projectStructureJson: expressify(projectStructureJson),
   userProjectsStructureJson: expressify(userProjectsStructureJson),
@@ -599,4 +732,5 @@ export default {
   downloadProjectAsZip: expressify(downloadProjectAsZip),
   upsertProjectEntityByPath: expressify(upsertProjectEntityByPath),
   deleteProjectEntityByPath: expressify(deleteProjectEntityByPath),
+  moveProjectEntityByPath: expressify(moveProjectEntityByPath),
 }

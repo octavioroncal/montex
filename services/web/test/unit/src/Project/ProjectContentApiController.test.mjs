@@ -72,6 +72,8 @@ describe('ProjectContentApiController', function () {
     ctx.ProjectEntityUpdateHandler = {
       promises: {
         deleteEntityWithPath: sinon.stub(),
+        moveEntity: sinon.stub(),
+        renameEntity: sinon.stub(),
       },
     }
 
@@ -795,6 +797,195 @@ describe('ProjectContentApiController', function () {
       )
 
       await ctx.controller.deleteProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(400)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        error: 'invalid_path',
+      })
+    })
+  })
+
+  describe('moveProjectEntityByPath', function () {
+    it('returns 400 when from_path or to_path is missing', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.body = { from_path: 'src/main.tex' }
+
+      await ctx.controller.moveProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(400)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        error: 'from_path and to_path are required',
+      })
+    })
+
+    it('returns 401 when request has no user', async function (ctx) {
+      ctx.req.body = {
+        from_path: 'src/main.tex',
+        to_path: 'src/main-renamed.tex',
+      }
+
+      await ctx.controller.moveProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(401)
+      expect(
+        ctx.ProjectEntityUpdateHandler.promises.moveEntity.called
+      ).to.equal(false)
+      expect(
+        ctx.ProjectEntityUpdateHandler.promises.renameEntity.called
+      ).to.equal(false)
+    })
+
+    it('returns 404 when source path does not exist', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.body = {
+        from_path: 'src/missing.tex',
+        to_path: 'src/main-renamed.tex',
+      }
+      ctx.ProjectLocator.promises.findElementByPath.rejects(
+        new ctx.Errors.NotFoundError()
+      )
+
+      await ctx.controller.moveProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(404)
+    })
+
+    it('renames entity when destination folder is the same', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.body = {
+        from_path: 'src/main.tex',
+        to_path: 'src/main-renamed.tex',
+      }
+      ctx.ProjectLocator.promises.findElementByPath.resolves({
+        type: 'doc',
+        element: { _id: { toString: () => 'doc-id' } },
+      })
+      ctx.ProjectEntityUpdateHandler.promises.renameEntity.resolves()
+
+      await ctx.controller.moveProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(
+        ctx.ProjectEntityUpdateHandler.promises.moveEntity.called
+      ).to.equal(false)
+      expect(
+        ctx.ProjectEntityUpdateHandler.promises.renameEntity.calledWith(
+          ctx.projectId,
+          sinon.match.any,
+          'doc',
+          'main-renamed.tex',
+          'oauth-user-id',
+          'project_content_api'
+        )
+      ).to.equal(true)
+      expect(ctx.res.statusCode).to.equal(200)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        entity_id: 'doc-id',
+        entity_type: 'doc',
+        path: 'src/main-renamed.tex',
+        moved: false,
+        renamed: true,
+      })
+    })
+
+    it('moves entity to another folder without renaming', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.body = {
+        from_path: 'src/main.tex',
+        to_path: 'archive/main.tex',
+      }
+      ctx.ProjectLocator.promises.findElementByPath.onFirstCall().resolves({
+        type: 'doc',
+        element: { _id: 'doc-id' },
+      })
+      ctx.ProjectLocator.promises.findElementByPath.onSecondCall().resolves({
+        type: 'folder',
+        element: { _id: 'folder-id' },
+      })
+      ctx.ProjectEntityUpdateHandler.promises.moveEntity.resolves()
+
+      await ctx.controller.moveProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(
+        ctx.ProjectEntityUpdateHandler.promises.moveEntity.calledWith(
+          ctx.projectId,
+          'doc-id',
+          'folder-id',
+          'doc',
+          'oauth-user-id',
+          'project_content_api'
+        )
+      ).to.equal(true)
+      expect(
+        ctx.ProjectEntityUpdateHandler.promises.renameEntity.called
+      ).to.equal(false)
+      expect(ctx.res.statusCode).to.equal(200)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        entity_id: 'doc-id',
+        entity_type: 'doc',
+        path: 'archive/main.tex',
+        moved: true,
+        renamed: false,
+      })
+    })
+
+    it('moves and renames entity when both folder and name change', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.body = {
+        from_path: 'src/main.tex',
+        to_path: 'archive/main-renamed.tex',
+      }
+      ctx.ProjectLocator.promises.findElementByPath.onFirstCall().resolves({
+        type: 'doc',
+        element: { _id: 'doc-id' },
+      })
+      ctx.ProjectLocator.promises.findElementByPath.onSecondCall().resolves({
+        type: 'folder',
+        element: { _id: 'folder-id' },
+      })
+      ctx.ProjectEntityUpdateHandler.promises.moveEntity.resolves()
+      ctx.ProjectEntityUpdateHandler.promises.renameEntity.resolves()
+
+      await ctx.controller.moveProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(
+        ctx.ProjectEntityUpdateHandler.promises.moveEntity.calledOnce
+      ).to.equal(true)
+      expect(
+        ctx.ProjectEntityUpdateHandler.promises.renameEntity.calledWith(
+          ctx.projectId,
+          'doc-id',
+          'doc',
+          'main-renamed.tex',
+          'oauth-user-id',
+          'project_content_api'
+        )
+      ).to.equal(true)
+      expect(ctx.res.statusCode).to.equal(200)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        entity_id: 'doc-id',
+        entity_type: 'doc',
+        path: 'archive/main-renamed.tex',
+        moved: true,
+        renamed: true,
+      })
+    })
+
+    it('returns 400 when destination parent is not a folder', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.body = {
+        from_path: 'src/main.tex',
+        to_path: 'archive/main.tex',
+      }
+      ctx.ProjectLocator.promises.findElementByPath.onFirstCall().resolves({
+        type: 'doc',
+        element: { _id: 'doc-id' },
+      })
+      ctx.ProjectLocator.promises.findElementByPath.onSecondCall().resolves({
+        type: 'file',
+        element: { _id: 'file-id' },
+      })
+
+      await ctx.controller.moveProjectEntityByPath(ctx.req, ctx.res, ctx.next)
 
       expect(ctx.res.statusCode).to.equal(400)
       expect(JSON.parse(ctx.res.body)).to.deep.equal({
