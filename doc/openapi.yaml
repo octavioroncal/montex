@@ -3,7 +3,7 @@ info:
   title: Overleaf Project Content API
   version: "1.0.0"
   description: |
-    API para consultar proyectos, descargar contenido y crear/sustituir ficheros por subruta.
+    API para consultar proyectos, descargar contenido y crear/sustituir/eliminar entidades por subruta.
     Los endpoints de integración externos son los que empiezan por `/api/v1/`
     y se autentican exclusivamente con `Authorization: Bearer <token>`.
 servers:
@@ -281,6 +281,47 @@ paths:
           description: Proyecto no encontrado.
         "415":
           description: Tipo de contenido no soportado.
+  /api/v1/project/{Project_id}/entity/by-path/{path}:
+    delete:
+      operationId: deleteProjectEntityByPathApiV1
+      summary: Eliminar fichero o carpeta del proyecto por subruta
+      description: |
+        Elimina una entidad del proyecto a partir de su subruta.
+        Si la ruta apunta a una carpeta, la eliminación incluye todo su contenido.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Project_id
+          in: path
+          required: true
+          description: ID del proyecto.
+          schema:
+            type: string
+            minLength: 1
+        - name: path
+          in: path
+          required: true
+          allowReserved: true
+          description: Subruta de la entidad a eliminar dentro del proyecto.
+          schema:
+            type: string
+            minLength: 1
+          example: src/main.tex
+      responses:
+        "204":
+          description: Entidad eliminada correctamente.
+        "400":
+          description: Ruta inválida o vacía.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: No autenticado.
+        "403":
+          description: Sin permisos para escribir en el proyecto.
+        "404":
+          description: Proyecto o ruta no encontrada.
 components:
   securitySchemes:
     bearerAuth:

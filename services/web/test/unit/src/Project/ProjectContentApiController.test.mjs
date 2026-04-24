@@ -69,6 +69,12 @@ describe('ProjectContentApiController', function () {
       },
     }
 
+    ctx.ProjectEntityUpdateHandler = {
+      promises: {
+        deleteEntityWithPath: sinon.stub(),
+      },
+    }
+
     vi.doMock('../../../../app/src/Features/Project/ProjectGetter.mjs', () => ({
       default: ctx.ProjectGetter,
     }))
@@ -131,6 +137,13 @@ describe('ProjectContentApiController', function () {
       '../../../../app/src/Features/ThirdPartyDataStore/UpdateMerger.mjs',
       () => ({
         default: ctx.UpdateMerger,
+      })
+    )
+
+    vi.doMock(
+      '../../../../app/src/Features/Project/ProjectEntityUpdateHandler.mjs',
+      () => ({
+        default: ctx.ProjectEntityUpdateHandler,
       })
     )
 
@@ -710,6 +723,78 @@ describe('ProjectContentApiController', function () {
       )
 
       await ctx.controller.upsertProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(400)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        error: 'invalid_path',
+      })
+    })
+  })
+
+  describe('deleteProjectEntityByPath', function () {
+    it('returns 400 if path is missing', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+
+      await ctx.controller.deleteProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(400)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        error: 'path is required',
+      })
+      expect(
+        ctx.ProjectEntityUpdateHandler.promises.deleteEntityWithPath.called
+      ).to.equal(false)
+    })
+
+    it('returns 401 when request has no user', async function (ctx) {
+      ctx.req.params[0] = 'src/main.tex'
+
+      await ctx.controller.deleteProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(401)
+      expect(
+        ctx.ProjectEntityUpdateHandler.promises.deleteEntityWithPath.called
+      ).to.equal(false)
+    })
+
+    it('returns 204 when entity is deleted by path', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'src/main.tex'
+      ctx.ProjectEntityUpdateHandler.promises.deleteEntityWithPath.resolves()
+
+      await ctx.controller.deleteProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(
+        ctx.ProjectEntityUpdateHandler.promises.deleteEntityWithPath.calledWith(
+          ctx.projectId,
+          'src/main.tex',
+          'oauth-user-id',
+          'project_content_api'
+        )
+      ).to.equal(true)
+      expect(ctx.res.statusCode).to.equal(204)
+    })
+
+    it('returns 404 when path does not exist', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'src/missing.tex'
+      ctx.ProjectEntityUpdateHandler.promises.deleteEntityWithPath.rejects(
+        new ctx.Errors.NotFoundError()
+      )
+
+      await ctx.controller.deleteProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(404)
+    })
+
+    it('returns 400 when path is invalid', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'src//bad'
+      ctx.ProjectEntityUpdateHandler.promises.deleteEntityWithPath.rejects(
+        new ctx.Errors.InvalidNameError('invalid element name')
+      )
+
+      await ctx.controller.deleteProjectEntityByPath(ctx.req, ctx.res, ctx.next)
 
       expect(ctx.res.statusCode).to.equal(400)
       expect(JSON.parse(ctx.res.body)).to.deep.equal({

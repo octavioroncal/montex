@@ -12,6 +12,7 @@ import UserGetter from '../User/UserGetter.mjs'
 import HistoryManager from '../History/HistoryManager.mjs'
 import ProjectDownloadsController from '../Downloads/ProjectDownloadsController.mjs'
 import UpdateMerger from '../ThirdPartyDataStore/UpdateMerger.mjs'
+import ProjectEntityUpdateHandler from './ProjectEntityUpdateHandler.mjs'
 
 const SUPPORTED_UPLOAD_CONTENT_TYPES = new Set([
   'text/plain',
@@ -552,6 +553,43 @@ async function upsertProjectEntityByPath(req, res) {
   }
 }
 
+async function deleteProjectEntityByPath(req, res) {
+  const projectId = req.params.Project_id
+  const rawPath = req.params[0] ?? req.query?.path
+  const projectPath = rawPath ? normalizeProjectPath(String(rawPath)) : ''
+  const userId = getRequestUserId(req)
+
+  if (!projectPath) {
+    return res.status(400).json({
+      error: 'path is required',
+    })
+  }
+
+  if (!userId) {
+    return res.sendStatus(401)
+  }
+
+  try {
+    await ProjectEntityUpdateHandler.promises.deleteEntityWithPath(
+      projectId,
+      projectPath,
+      userId,
+      'project_content_api'
+    )
+    return res.sendStatus(204)
+  } catch (err) {
+    if (err instanceof Errors.InvalidNameError) {
+      return res.status(400).json({
+        error: 'invalid_path',
+      })
+    }
+    if (err instanceof Errors.NotFoundError) {
+      return res.sendStatus(404)
+    }
+    throw err
+  }
+}
+
 export default {
   projectStructureJson: expressify(projectStructureJson),
   userProjectsStructureJson: expressify(userProjectsStructureJson),
@@ -560,4 +598,5 @@ export default {
   downloadCompiledPdfByPath: expressify(downloadCompiledPdfByPath),
   downloadProjectAsZip: expressify(downloadProjectAsZip),
   upsertProjectEntityByPath: expressify(upsertProjectEntityByPath),
+  deleteProjectEntityByPath: expressify(deleteProjectEntityByPath),
 }
