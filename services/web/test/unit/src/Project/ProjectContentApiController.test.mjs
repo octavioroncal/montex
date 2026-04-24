@@ -59,6 +59,16 @@ describe('ProjectContentApiController', function () {
       _proxyToClsi: sinon.stub().resolves(),
     }
 
+    ctx.ProjectDownloadsController = {
+      downloadProject: sinon.stub(),
+    }
+
+    ctx.UpdateMerger = {
+      promises: {
+        mergeUpdate: sinon.stub(),
+      },
+    }
+
     vi.doMock('../../../../app/src/Features/Project/ProjectGetter.mjs', () => ({
       default: ctx.ProjectGetter,
     }))
@@ -110,6 +120,20 @@ describe('ProjectContentApiController', function () {
       })
     )
 
+    vi.doMock(
+      '../../../../app/src/Features/Downloads/ProjectDownloadsController.mjs',
+      () => ({
+        default: ctx.ProjectDownloadsController,
+      })
+    )
+
+    vi.doMock(
+      '../../../../app/src/Features/ThirdPartyDataStore/UpdateMerger.mjs',
+      () => ({
+        default: ctx.UpdateMerger,
+      })
+    )
+
     ctx.controller = (await import(MODULE_PATH)).default
     ctx.projectId = '65f2f57f8d6c0b6d50300001'
     ctx.req = {
@@ -117,6 +141,7 @@ describe('ProjectContentApiController', function () {
         Project_id: ctx.projectId,
       },
       query: {},
+      headers: {},
     }
     ctx.res = new MockResponse(vi)
     ctx.next = sinon.stub()
@@ -540,6 +565,156 @@ describe('ProjectContentApiController', function () {
       await ctx.controller.downloadCompiledPdfByPath(ctx.req, ctx.res, ctx.next)
 
       expect(ctx.res.statusCode).to.equal(500)
+    })
+  })
+
+  describe('downloadProjectAsZip', function () {
+    it('delegates zip generation to ProjectDownloadsController', async function (ctx) {
+      await ctx.controller.downloadProjectAsZip(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.ProjectDownloadsController.downloadProject.calledOnce).to.equal(
+        true
+      )
+      expect(
+        ctx.ProjectDownloadsController.downloadProject.calledWith(
+          ctx.req,
+          ctx.res,
+          ctx.next
+        )
+      ).to.equal(true)
+    })
+  })
+
+  describe('upsertProjectEntityByPath', function () {
+    it('returns 400 if path is missing', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+
+      await ctx.controller.upsertProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(400)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        error: 'path is required',
+      })
+    })
+
+    it('returns 415 for unsupported content type', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'src/main.tex'
+      ctx.req.headers['content-type'] = 'application/json'
+
+      await ctx.controller.upsertProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(415)
+      expect(ctx.UpdateMerger.promises.mergeUpdate.called).to.equal(false)
+    })
+
+    it('returns 400 when path points to a folder', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'src'
+      ctx.req.headers['content-type'] = 'text/plain'
+      ctx.ProjectLocator.promises.findElementByPath.resolves({
+        type: 'folder',
+        element: { _id: 'folder-id' },
+      })
+
+      await ctx.controller.upsertProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(400)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        error: 'path points to a folder',
+      })
+      expect(ctx.UpdateMerger.promises.mergeUpdate.called).to.equal(false)
+    })
+
+    it('returns 201 when creating a new path', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'src/main.tex'
+      ctx.req.headers['content-type'] = 'text/plain; charset=utf-8'
+      ctx.ProjectLocator.promises.findElementByPath.rejects(
+        new ctx.Errors.NotFoundError()
+      )
+      ctx.UpdateMerger.promises.mergeUpdate.resolves({
+        entityId: { toString: () => 'doc-id' },
+        entityType: 'doc',
+      })
+
+      await ctx.controller.upsertProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(
+        ctx.UpdateMerger.promises.mergeUpdate.calledWith(
+          'oauth-user-id',
+          ctx.projectId,
+          '/src/main.tex',
+          ctx.req,
+          'project_content_api'
+        )
+      ).to.equal(true)
+      expect(ctx.res.statusCode).to.equal(201)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        entity_id: 'doc-id',
+        entity_type: 'doc',
+        path: 'src/main.tex',
+        created: true,
+      })
+    })
+
+    it('returns 200 when replacing an existing path', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'images/logo.png'
+      ctx.req.headers['content-type'] = 'application/octet-stream'
+      ctx.ProjectLocator.promises.findElementByPath.resolves({
+        type: 'file',
+        element: { _id: 'file-id' },
+      })
+      ctx.UpdateMerger.promises.mergeUpdate.resolves({
+        entityId: { toString: () => 'file-id' },
+        entityType: 'file',
+      })
+
+      await ctx.controller.upsertProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(200)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        entity_id: 'file-id',
+        entity_type: 'file',
+        path: 'images/logo.png',
+        created: false,
+      })
+    })
+
+    it('returns 404 when merge update cannot find project', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'src/main.tex'
+      ctx.req.headers['content-type'] = 'text/plain'
+      ctx.ProjectLocator.promises.findElementByPath.rejects(
+        new ctx.Errors.NotFoundError()
+      )
+      ctx.UpdateMerger.promises.mergeUpdate.rejects(
+        new ctx.Errors.NotFoundError()
+      )
+
+      await ctx.controller.upsertProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(404)
+    })
+
+    it('returns 400 on invalid path updates', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'src/invalid'
+      ctx.req.headers['content-type'] = 'text/plain'
+      ctx.ProjectLocator.promises.findElementByPath.rejects(
+        new ctx.Errors.NotFoundError()
+      )
+      ctx.UpdateMerger.promises.mergeUpdate.rejects(
+        new ctx.Errors.InvalidNameError('invalid element name')
+      )
+
+      await ctx.controller.upsertProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(400)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        error: 'invalid_path',
+      })
     })
   })
 })

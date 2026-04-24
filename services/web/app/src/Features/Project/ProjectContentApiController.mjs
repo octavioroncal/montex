@@ -10,6 +10,13 @@ import CompileController from '../Compile/CompileController.mjs'
 import SessionManager from '../Authentication/SessionManager.mjs'
 import UserGetter from '../User/UserGetter.mjs'
 import HistoryManager from '../History/HistoryManager.mjs'
+import ProjectDownloadsController from '../Downloads/ProjectDownloadsController.mjs'
+import UpdateMerger from '../ThirdPartyDataStore/UpdateMerger.mjs'
+
+const SUPPORTED_UPLOAD_CONTENT_TYPES = new Set([
+  'text/plain',
+  'application/octet-stream',
+])
 
 function getRequestUserId(req) {
   return (
@@ -21,6 +28,14 @@ function getRequestUserId(req) {
 
 function normalizeProjectPath(path) {
   return path.trim().replace(/^\/+/, '')
+}
+
+function getBaseContentType(req) {
+  const contentType = req.headers?.['content-type']
+  if (typeof contentType !== 'string') {
+    return ''
+  }
+  return contentType.split(';', 1)[0].trim().toLowerCase()
 }
 
 function filePathInProject(parentPath, entityName) {
@@ -456,10 +471,93 @@ async function downloadCompiledPdfByPath(req, res) {
   )
 }
 
+async function downloadProjectAsZip(req, res, next) {
+  ProjectDownloadsController.downloadProject(req, res, next)
+}
+
+async function upsertProjectEntityByPath(req, res) {
+  const projectId = req.params.Project_id
+  const rawPath = req.params[0] ?? req.query?.path
+  const projectPath = rawPath ? normalizeProjectPath(String(rawPath)) : ''
+  const userId = getRequestUserId(req)
+
+  if (!projectPath) {
+    return res.status(400).json({
+      error: 'path is required',
+    })
+  }
+
+  if (!userId) {
+    return res.sendStatus(401)
+  }
+
+  const contentType = getBaseContentType(req)
+  if (
+    contentType.length > 0 &&
+    !SUPPORTED_UPLOAD_CONTENT_TYPES.has(contentType)
+  ) {
+    return res.sendStatus(415)
+  }
+
+  let pathAlreadyExists = false
+  try {
+    const located = await ProjectLocator.promises.findElementByPath({
+      project_id: projectId,
+      path: projectPath,
+      exactCaseMatch: true,
+    })
+
+    if (located.type === 'folder') {
+      return res.status(400).json({
+        error: 'path points to a folder',
+      })
+    }
+    pathAlreadyExists = true
+  } catch (err) {
+    if (!(err instanceof Errors.NotFoundError)) {
+      throw err
+    }
+  }
+
+  try {
+    const metadata = await UpdateMerger.promises.mergeUpdate(
+      userId,
+      projectId,
+      `/${projectPath}`,
+      req,
+      'project_content_api'
+    )
+
+    const created = !pathAlreadyExists
+
+    return res.status(created ? 201 : 200).json({
+      entity_id: metadata.entityId.toString(),
+      entity_type: metadata.entityType,
+      path: projectPath,
+      created,
+    })
+  } catch (err) {
+    if (
+      err instanceof Errors.InvalidNameError ||
+      err instanceof Errors.DuplicateNameError
+    ) {
+      return res.status(400).json({
+        error: 'invalid_path',
+      })
+    }
+    if (err instanceof Errors.NotFoundError) {
+      return res.sendStatus(404)
+    }
+    throw err
+  }
+}
+
 export default {
   projectStructureJson: expressify(projectStructureJson),
   userProjectsStructureJson: expressify(userProjectsStructureJson),
   userProjectsSummaryJson: expressify(userProjectsSummaryJson),
   downloadProjectEntityByPath: expressify(downloadProjectEntityByPath),
   downloadCompiledPdfByPath: expressify(downloadCompiledPdfByPath),
+  downloadProjectAsZip: expressify(downloadProjectAsZip),
+  upsertProjectEntityByPath: expressify(upsertProjectEntityByPath),
 }

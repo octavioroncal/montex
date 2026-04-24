@@ -266,10 +266,22 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     ProjectContentApiController.downloadProjectEntityByPath
   )
   publicApiRouter.get(
+    '/api/v1/project/:Project_id/download/zip',
+    ProjectContentApiAuthMiddleware.requireBearer,
+    AuthorizationMiddleware.ensureUserCanReadProject,
+    ProjectContentApiController.downloadProjectAsZip
+  )
+  publicApiRouter.get(
     '/api/v1/project/:Project_id/download/compiled-pdf/by-path/*',
     ProjectContentApiAuthMiddleware.requireBearer,
     AuthorizationMiddleware.ensureUserCanReadProject,
     ProjectContentApiController.downloadCompiledPdfByPath
+  )
+  publicApiRouter.put(
+    '/api/v1/project/:Project_id/file/by-path/*',
+    ProjectContentApiAuthMiddleware.requireBearer,
+    AuthorizationMiddleware.ensureUserCanWriteProjectContent,
+    ProjectContentApiController.upsertProjectEntityByPath
   )
 
   webRouter.get(

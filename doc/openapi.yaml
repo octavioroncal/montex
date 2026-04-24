@@ -3,7 +3,9 @@ info:
   title: Overleaf Project Content API
   version: "1.0.0"
   description: |
-    API para consultar la estructura de un proyecto y descargar un fichero por subruta.
+    API para consultar proyectos, descargar contenido y crear/sustituir ficheros por subruta.
+    Los endpoints de integración externos son los que empiezan por `/api/v1/`
+    y se autentican exclusivamente con `Authorization: Bearer <token>`.
 servers:
   - url: /
 paths:
@@ -56,23 +58,7 @@ paths:
                     error: invalid_credentials
   /api/v1/user/projects/summary:
     get:
-      operationId: getUserProjectsSummaryV1Alias
-      summary: Obtener listado simple de proyectos del usuario (alias v1)
-      description: Alias de `/user/projects/summary`.
-      security:
-        - bearerAuth: []
-      responses:
-        "200":
-          description: Listado de proyectos.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ProjectSummaryResponse"
-        "401":
-          description: No autenticado.
-  /user/projects/summary:
-    get:
-      operationId: getUserProjectsSummary
+      operationId: getUserProjectsSummaryApiV1
       summary: Obtener listado simple de proyectos del usuario
       description: Devuelve los proyectos visibles por el usuario autenticado con su ID y nombre.
       security:
@@ -84,20 +70,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProjectSummaryResponse"
-              examples:
-                ok:
-                  value:
-                    userId: "65f2f57f8d6c0b6d503000aa"
-                    projects:
-                      - project_id: "65f2f57f8d6c0b6d50300001"
-                        projectName: "My project"
-                      - project_id: "65f2f57f8d6c0b6d50300002"
-                        projectName: "Shared project"
         "401":
           description: No autenticado.
-  /project/{Project_id}/structure:
+  /api/v1/project/{Project_id}/structure:
     get:
-      operationId: getProjectStructure
+      operationId: getProjectStructureApiV1
       summary: Obtener estructura de un proyecto
       description: Devuelve el árbol completo del proyecto (carpetas, docs y ficheros binarios).
       security:
@@ -117,43 +94,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProjectStructureResponse"
-              examples:
-                ok:
-                  value:
-                    project_id: "65f2f57f8d6c0b6d50300001"
-                    projectName: "My project"
-                    rootDocId: "65f2f57f8d6c0b6d50300010"
-                    structure:
-                      _id: "65f2f57f8d6c0b6d50300020"
-                      name: "rootFolder"
-                      type: "folder"
-                      path: ""
-                      folders:
-                        - _id: "65f2f57f8d6c0b6d50300030"
-                          name: "src"
-                          type: "folder"
-                          path: "src"
-                          folders: []
-                          docs:
-                            - _id: "65f2f57f8d6c0b6d50300040"
-                              name: "chapter1.tex"
-                              type: "doc"
-                              path: "src/chapter1.tex"
-                          files:
-                            - _id: "65f2f57f8d6c0b6d50300050"
-                              name: "image.png"
-                              type: "file"
-                              path: "src/image.png"
-                      docs:
-                        - _id: "65f2f57f8d6c0b6d50300010"
-                          name: "main.tex"
-                          type: "doc"
-                          path: "main.tex"
-                      files:
-                        - _id: "65f2f57f8d6c0b6d50300060"
-                          name: "refs.bib"
-                          type: "file"
-                          path: "refs.bib"
         "401":
           description: No autenticado.
         "403":
@@ -162,39 +102,9 @@ paths:
           description: Proyecto no encontrado.
         "500":
           description: Error interno.
-  /api/v1/project/{Project_id}/structure:
+  /api/v1/project/{Project_id}/download/compiled-pdf/by-path/{path}:
     get:
-      operationId: getProjectStructureV1Alias
-      summary: Obtener estructura de un proyecto (alias v1)
-      description: Alias de `/project/{Project_id}/structure`.
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: Project_id
-          in: path
-          required: true
-          description: ID del proyecto.
-          schema:
-            type: string
-            minLength: 1
-      responses:
-        "200":
-          description: Estructura del proyecto.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ProjectStructureResponse"
-        "401":
-          description: No autenticado.
-        "403":
-          description: Sin permisos para leer el proyecto.
-        "404":
-          description: Proyecto no encontrado.
-        "500":
-          description: Error interno.
-  /project/{Project_id}/download/compiled-pdf/by-path/{path}:
-    get:
-      operationId: downloadCompiledPdfByPath
+      operationId: downloadCompiledPdfByPathApiV1
       summary: Compilar y descargar PDF desde una subruta LaTeX
       description: |
         Localiza un documento por su subruta y, si apunta a un documento LaTeX (`.tex`),
@@ -217,64 +127,6 @@ paths:
           schema:
             type: string
             minLength: 1
-          example: src/main.tex
-      responses:
-        "200":
-          description: PDF compilado.
-          headers:
-            Content-Disposition:
-              description: Cabecera de descarga/renderizado del PDF.
-              schema:
-                type: string
-          content:
-            application/pdf:
-              schema:
-                type: string
-                format: binary
-        "400":
-          description: Ruta inválida o no apunta a un documento LaTeX.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              examples:
-                missingPath:
-                  value:
-                    error: path is required
-                nonLatex:
-                  value:
-                    error: path must point to a latex document (.tex)
-        "401":
-          description: No autenticado.
-        "403":
-          description: Sin permisos para leer el proyecto.
-        "404":
-          description: Proyecto o ruta no encontrada.
-        "500":
-          description: Error de compilación o descarga.
-  /api/v1/project/{Project_id}/download/compiled-pdf/by-path/{path}:
-    get:
-      operationId: downloadCompiledPdfByPathV1Alias
-      summary: Compilar y descargar PDF desde una subruta LaTeX (alias v1)
-      description: Alias de `/project/{Project_id}/download/compiled-pdf/by-path/{path}`.
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: Project_id
-          in: path
-          required: true
-          description: ID del proyecto.
-          schema:
-            type: string
-            minLength: 1
-        - name: path
-          in: path
-          required: true
-          allowReserved: true
-          description: Subruta del documento `.tex` dentro del proyecto.
-          schema:
-            type: string
-            minLength: 1
       responses:
         "200":
           description: PDF compilado.
@@ -293,9 +145,9 @@ paths:
           description: Proyecto o ruta no encontrada.
         "500":
           description: Error de compilación o descarga.
-  /project/{Project_id}/download/by-path/{path}:
+  /api/v1/project/{Project_id}/download/by-path/{path}:
     get:
-      operationId: downloadProjectEntityByPath
+      operationId: downloadProjectEntityByPathApiV1
       summary: Descargar fichero del proyecto por subruta
       description: |
         Descarga un documento (`doc`) o fichero binario (`file`) del proyecto a partir de su subruta.
@@ -318,49 +170,61 @@ paths:
           schema:
             type: string
             minLength: 1
-          example: src/main.tex
       responses:
         "200":
           description: Contenido del fichero solicitado.
-          headers:
-            Content-Disposition:
-              description: Cabecera de adjunto con el nombre de fichero.
-              schema:
-                type: string
-          content:
-            text/plain:
-              schema:
-                type: string
-              description: Respuesta cuando el recurso es un documento (`doc`).
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-              description: Respuesta cuando el recurso es un fichero binario (`file`).
         "400":
           description: La ruta es inválida o apunta a una carpeta.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              examples:
-                folderPath:
-                  value:
-                    error: path points to a folder
-                missingPath:
-                  value:
-                    error: path is required
         "401":
           description: No autenticado.
         "403":
           description: Sin permisos para leer el proyecto.
         "404":
           description: Proyecto o ruta no encontrada.
-  /api/v1/project/{Project_id}/download/by-path/{path}:
+  /api/v1/project/{Project_id}/download/zip:
     get:
-      operationId: downloadProjectEntityByPathV1Alias
-      summary: Descargar fichero del proyecto por subruta (alias v1)
-      description: Alias de `/project/{Project_id}/download/by-path/{path}`.
+      operationId: downloadProjectAsZipApiV1
+      summary: Descargar contenido completo del proyecto
+      description: |
+        Devuelve un archivo ZIP con todo el contenido del proyecto (docs y ficheros binarios).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Project_id
+          in: path
+          required: true
+          description: ID del proyecto.
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Archivo ZIP con el contenido completo del proyecto.
+          headers:
+            Content-Disposition:
+              description: Cabecera de adjunto con el nombre del ZIP.
+              schema:
+                type: string
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: No autenticado.
+        "403":
+          description: Sin permisos para leer el proyecto.
+        "404":
+          description: Proyecto no encontrado.
+        "500":
+          description: Error generando el ZIP del proyecto.
+  /api/v1/project/{Project_id}/file/by-path/{path}:
+    put:
+      operationId: upsertProjectFileByPathApiV1
+      summary: Crear o sustituir fichero del proyecto por subruta
+      description: |
+        Crea un fichero en la subruta indicada o sustituye su contenido si ya existe.
+        El contenido puede enviarse como texto (`text/plain`) o binario (`application/octet-stream`).
       security:
         - bearerAuth: []
       parameters:
@@ -375,21 +239,48 @@ paths:
           in: path
           required: true
           allowReserved: true
-          description: Subruta del fichero dentro del proyecto.
+          description: Subruta destino del fichero dentro del proyecto.
           schema:
             type: string
             minLength: 1
+          example: src/main.tex
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
       responses:
         "200":
-          description: Contenido del fichero solicitado.
+          description: Fichero sustituido correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectFileUpsertResponse"
+        "201":
+          description: Fichero creado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectFileUpsertResponse"
         "400":
-          description: La ruta es inválida o apunta a una carpeta.
+          description: Ruta inválida, contenido vacío o petición no válida.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: No autenticado.
         "403":
-          description: Sin permisos para leer el proyecto.
+          description: Sin permisos para escribir en el proyecto.
         "404":
-          description: Proyecto o ruta no encontrada.
+          description: Proyecto no encontrado.
+        "415":
+          description: Tipo de contenido no soportado.
 components:
   securitySchemes:
     bearerAuth:
@@ -541,6 +432,25 @@ components:
           const: file
         path:
           type: string
+    ProjectFileUpsertResponse:
+      type: object
+      required:
+        - entity_id
+        - entity_type
+        - path
+        - created
+      properties:
+        entity_id:
+          type: string
+        entity_type:
+          type: string
+          enum:
+            - doc
+            - file
+        path:
+          type: string
+        created:
+          type: boolean
     ErrorResponse:
       type: object
       required:
