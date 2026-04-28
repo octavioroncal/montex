@@ -240,6 +240,7 @@ describe('ProjectContentApiController', function () {
                       name: 'figure.png',
                       hash: 'abc123',
                       created: new Date('2025-01-10T10:00:00.000Z'),
+                      modified: new Date('2025-01-11T11:15:00.000Z'),
                     },
                   ],
                 },
@@ -321,7 +322,7 @@ describe('ProjectContentApiController', function () {
             lastName: 'User',
           },
           createdAt: '2025-01-10T10:00:00.000Z',
-          modifiedAt: '2025-01-12T08:30:00.000Z',
+          modifiedAt: '2025-01-11T11:15:00.000Z',
           sizeKb: 2,
         },
       ])
@@ -333,6 +334,43 @@ describe('ProjectContentApiController', function () {
           'HEAD'
         )
       ).to.equal(true)
+    })
+
+    it('uses oauth_user when session user is missing', async function (ctx) {
+      ctx.req.session = {}
+      ctx.req.oauth_user = { _id: { toString: () => 'oauth-user-id' } }
+      ctx.SessionManager.getLoggedInUserId.returns(null)
+      ctx.ProjectGetter.promises.findAllUsersProjects = sinon.stub().resolves({
+        owned: [],
+        readAndWrite: [],
+        readOnly: [],
+        tokenReadAndWrite: [],
+        tokenReadOnly: [],
+        review: [],
+      })
+      ctx.UserGetter.promises.getUsers.resolves([])
+
+      await ctx.controller.userProjectsStructureJson(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(200)
+      const body = JSON.parse(ctx.res.body)
+      expect(body).to.deep.equal({
+        userId: 'oauth-user-id',
+        projects: [],
+      })
+    })
+
+    it('returns 401 when there is no authenticated user', async function (ctx) {
+      ctx.req.session = {}
+      ctx.SessionManager.getLoggedInUserId.returns(null)
+      ctx.ProjectGetter.promises.findAllUsersProjects = sinon.stub()
+
+      await ctx.controller.userProjectsStructureJson(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(401)
+      expect(ctx.ProjectGetter.promises.findAllUsersProjects.called).to.equal(
+        false
+      )
     })
   })
 

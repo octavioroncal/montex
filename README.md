@@ -66,7 +66,7 @@ curl -b cookies.txt "http://localhost/project/<PROJECT_ID>/structure"
 curl -L -b cookies.txt "http://localhost/project/<PROJECT_ID>/download/by-path/src/main.tex" -o main.tex
 ```
 
-OpenAPI schema: [`services/web/openapi.yaml`](services/web/openapi.yaml)
+OpenAPI schema: [`doc/openapi.yaml`](doc/openapi.yaml)
 
 > [!CAUTION]
 > Overleaf Community Edition is intended for use in environments where **all** users are trusted. Community Edition is **not** appropriate for scenarios where isolation of users is required due to Sandbox Compiles not being available. When not using Sandboxed Compiles, users have full read and write access to the `sharelatex` container resources (filesystem, network, environment variables) when running LaTeX compiles. 

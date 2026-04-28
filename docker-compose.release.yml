@@ -26,7 +26,7 @@ services:
       GIT_BRIDGE_HOST: ${GIT_BRIDGE_HOST:-git-bridge}
       NODE_ENV: production
     volumes:
-      - sharelatex-data:/var/lib/overleaf
+      - ${OVERLEAF_DATA_PATH:-/srv/overleaf/data}:/var/lib/overleaf:Z
 
   git-bridge:
     container_name: git-bridge
@@ -69,7 +69,6 @@ services:
       - redis-data:/data
 
 volumes:
-  sharelatex-data:
   git-bridge-data:
   mongo-data:
   redis-data:

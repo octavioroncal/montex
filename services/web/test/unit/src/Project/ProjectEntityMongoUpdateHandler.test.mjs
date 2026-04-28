@@ -419,6 +419,7 @@ describe('ProjectEntityMongoUpdateHandler', function () {
             $set: {
               'rootFolder.0.fileRefs.0._id': newFile._id,
               'rootFolder.0.fileRefs.0.created': sinon.match.date,
+              'rootFolder.0.fileRefs.0.modified': sinon.match.date,
               'rootFolder.0.fileRefs.0.linkedFileData': newFile.linkedFileData,
               'rootFolder.0.fileRefs.0.hash': newFile.hash,
               lastUpdated: new Date(),

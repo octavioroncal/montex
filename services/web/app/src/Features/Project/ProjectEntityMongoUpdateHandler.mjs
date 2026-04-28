@@ -161,15 +161,17 @@ async function replaceFileWithNew(projectId, fileId, newFileRef, userId) {
     element_id: fileId,
     type: 'file',
   })
+  const now = new Date()
   const newProject = await Project.findOneAndUpdate(
     { _id: project._id, [path.mongo]: { $exists: true } },
     {
       $set: {
         [`${path.mongo}._id`]: newFileRef._id,
-        [`${path.mongo}.created`]: new Date(),
+        [`${path.mongo}.created`]: now,
+        [`${path.mongo}.modified`]: now,
         [`${path.mongo}.linkedFileData`]: newFileRef.linkedFileData,
         [`${path.mongo}.hash`]: newFileRef.hash,
-        lastUpdated: new Date(),
+        lastUpdated: now,
         lastUpdatedBy: userId,
       },
       $inc: {

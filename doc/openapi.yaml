@@ -72,6 +72,24 @@ paths:
                 $ref: "#/components/schemas/ProjectSummaryResponse"
         "401":
           description: No autenticado.
+  /api/v1/user/projects/structure:
+    get:
+      operationId: getUserProjectsStructureApiV1
+      summary: Obtener estructura y metadatos de los proyectos del usuario
+      description: |
+        Devuelve los proyectos visibles por el usuario autenticado con su estructura
+        de carpetas y metadatos por fichero, incluyendo `createdAt` y `modifiedAt`.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Estructura y metadatos de proyectos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProjectsStructureResponse"
+        "401":
+          description: No autenticado.
   /api/v1/project/{Project_id}/structure:
     get:
       operationId: getProjectStructureApiV1
@@ -437,6 +455,138 @@ components:
           type: string
         projectName:
           type: string
+    UserProjectsStructureResponse:
+      type: object
+      required:
+        - userId
+        - projects
+      properties:
+        userId:
+          type: string
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserProjectStructureItem"
+    UserProjectStructureItem:
+      type: object
+      required:
+        - project_id
+        - projectName
+        - accessLevel
+        - owner
+        - lastUpdatedBy
+        - createdAt
+        - modifiedAt
+        - structure
+        - files
+      properties:
+        project_id:
+          type: string
+        projectName:
+          type: string
+        accessLevel:
+          type: string
+          enum:
+            - owned
+            - readAndWrite
+            - readOnly
+            - tokenReadAndWrite
+            - tokenReadOnly
+            - review
+        rootDocId:
+          anyOf:
+            - type: string
+            - type: "null"
+        owner:
+          anyOf:
+            - $ref: "#/components/schemas/UserRef"
+            - type: "null"
+        lastUpdatedBy:
+          anyOf:
+            - $ref: "#/components/schemas/UserRef"
+            - type: "null"
+        createdAt:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        modifiedAt:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        structure:
+          $ref: "#/components/schemas/FolderNode"
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectFileMetadataItem"
+    UserRef:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        email:
+          anyOf:
+            - type: string
+              format: email
+            - type: "null"
+        firstName:
+          anyOf:
+            - type: string
+            - type: "null"
+        lastName:
+          anyOf:
+            - type: string
+            - type: "null"
+    ProjectFileMetadataItem:
+      type: object
+      required:
+        - _id
+        - name
+        - type
+        - path
+        - owner
+        - uploadedByOrOwner
+        - createdAt
+        - modifiedAt
+        - sizeKb
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - doc
+            - file
+        path:
+          type: string
+        owner:
+          anyOf:
+            - $ref: "#/components/schemas/UserRef"
+            - type: "null"
+        uploadedByOrOwner:
+          anyOf:
+            - $ref: "#/components/schemas/UserRef"
+            - type: "null"
+        createdAt:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        modifiedAt:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        sizeKb:
+          anyOf:
+            - type: number
+            - type: "null"
     ProjectStructureResponse:
       type: object
       required:

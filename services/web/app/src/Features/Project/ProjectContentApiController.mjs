@@ -149,6 +149,11 @@ function collectProjectFileMetadata(
 
   for (const file of folder.fileRefs || []) {
     if (!file) continue
+    const fileCreatedAt = toISOString(file.created) || context.projectCreatedAt
+    const fileModifiedAt =
+      toISOString(file.modified) ||
+      fileCreatedAt ||
+      context.projectLastUpdatedAt
     const entry = {
       _id: file._id,
       name: file.name,
@@ -156,8 +161,8 @@ function collectProjectFileMetadata(
       path: filePathInProject(folderPath, file.name),
       owner: context.owner,
       uploadedByOrOwner: uploader,
-      createdAt: toISOString(file.created) || context.projectCreatedAt,
-      modifiedAt: context.projectLastUpdatedAt,
+      createdAt: fileCreatedAt,
+      modifiedAt: fileModifiedAt,
       sizeKb: null,
     }
     fileEntries.push(entry)
@@ -262,7 +267,10 @@ async function projectStructureJson(req, res) {
 }
 
 async function userProjectsStructureJson(req, res) {
-  const userId = SessionManager.getLoggedInUserId(req.session)
+  const userId = getRequestUserId(req)
+  if (!userId) {
+    return res.sendStatus(401)
+  }
   const projectsByAccessLevel = await ProjectGetter.promises.findAllUsersProjects(
     userId,
     {

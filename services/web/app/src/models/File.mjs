@@ -14,6 +14,12 @@ export const FileSchema = new Schema(
         return new Date()
       },
     },
+    modified: {
+      type: Date,
+      default() {
+        return this.created ?? new Date()
+      },
+    },
     rev: { type: Number, default: 0 },
     linkedFileData: { type: Schema.Types.Mixed },
     hash: {

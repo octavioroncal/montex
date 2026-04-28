@@ -142,13 +142,20 @@ async function _findElementByPathWithProject(
   needlePath,
   exactCaseMatch
 ) {
+  const normalizeForComparison = value =>
+    typeof value === 'string' ? value.normalize('NFC') : value
+
   let matchFn
   if (exactCaseMatch) {
-    matchFn = (a, b) => a === b
-  } else {
     matchFn = (a, b) =>
-      (a != null ? a.toLowerCase() : undefined) ===
-      (b != null ? b.toLowerCase() : undefined)
+      normalizeForComparison(a) === normalizeForComparison(b)
+  } else {
+    matchFn = (a, b) => {
+      const left = normalizeForComparison(a)
+      const right = normalizeForComparison(b)
+      return (left != null ? left.toLowerCase() : undefined) ===
+        (right != null ? right.toLowerCase() : undefined)
+    }
   }
 
   function getParentFolder(haystackFolder, foldersList, level) {

@@ -386,6 +386,30 @@ describe('ProjectLocator', function () {
       ).to.eventually.be.rejected
     })
 
+    it('should match unicode canonical-equivalent paths when exactCaseMatch is true', async function (ctx) {
+      const storedFileName = 'transcripcio\u0301n.pdf'
+      const requestedFileName = 'transcripción.pdf'
+      const unicodeProject = {
+        rootFolder: [
+          {
+            folders: [],
+            docs: [],
+            fileRefs: [{ name: storedFileName, _id: 'unicode-file' }],
+          },
+        ],
+      }
+
+      const { element, type } = await ctx.locator.promises.findElementByPath({
+        project: unicodeProject,
+        path: requestedFileName,
+        exactCaseMatch: true,
+      })
+
+      expect(type).to.equal('file')
+      expect(element._id).to.equal('unicode-file')
+      expect(element.name).to.equal(storedFileName)
+    })
+
     it('should take a file path and return the element for a nested folder', async function (ctx) {
       const path = `${subFolder.name}/${secondSubFolder.name}`
       const { element, type, folder } =

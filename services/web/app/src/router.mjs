@@ -254,6 +254,11 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     ProjectContentApiController.userProjectsSummaryJson
   )
   publicApiRouter.get(
+    '/api/v1/user/projects/structure',
+    ProjectContentApiAuthMiddleware.requireBearer,
+    ProjectContentApiController.userProjectsStructureJson
+  )
+  publicApiRouter.get(
     '/api/v1/project/:Project_id/structure',
     ProjectContentApiAuthMiddleware.requireBearer,
     AuthorizationMiddleware.ensureUserCanReadProject,
