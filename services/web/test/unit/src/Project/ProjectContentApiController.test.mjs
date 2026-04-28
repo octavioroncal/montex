@@ -77,6 +77,10 @@ describe('ProjectContentApiController', function () {
       },
     }
 
+    ctx.logger = {
+      error: sinon.stub(),
+    }
+
     vi.doMock('../../../../app/src/Features/Project/ProjectGetter.mjs', () => ({
       default: ctx.ProjectGetter,
     }))
@@ -148,6 +152,10 @@ describe('ProjectContentApiController', function () {
         default: ctx.ProjectEntityUpdateHandler,
       })
     )
+
+    vi.doMock('@overleaf/logger', () => ({
+      default: ctx.logger,
+    }))
 
     ctx.controller = (await import(MODULE_PATH)).default
     ctx.projectId = '65f2f57f8d6c0b6d50300001'
@@ -623,6 +631,43 @@ describe('ProjectContentApiController', function () {
         error: 'compile did not produce output.pdf',
         compileStatus: 'failure',
         outputFiles: [{ path: 'other.log' }],
+      })
+    })
+
+    it('returns 502 with backend compile diagnostics when compile request fails in CLSI', async function (ctx) {
+      ctx.req.params[0] = 'src/main.tex'
+      ctx.ProjectLocator.promises.findElementByPath.resolves({
+        type: 'doc',
+        element: { _id: 'doc-id' },
+      })
+      ctx.CompileManager.promises.compile.rejects({
+        info: {
+          statusCode: 503,
+          clsiResponse: JSON.stringify({
+            compile: { status: 'unavailable' },
+          }),
+        },
+      })
+
+      await ctx.controller.downloadCompiledPdfByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(502)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        error: 'compile backend error',
+        compileStatusCode: 503,
+        compileStatus: 'unavailable',
+      })
+      expect(ctx.logger.error.calledOnce).to.equal(true)
+      expect(ctx.logger.error.firstCall.args[1]).to.equal(
+        'failed to compile latex document for API compiled-pdf download by path'
+      )
+      expect(ctx.logger.error.firstCall.args[0]).to.deep.include({
+        projectId: ctx.projectId,
+        projectPath: 'src/main.tex',
+        rootDocId: 'doc-id',
+        userId: 'user-id',
+        compileStatusCode: 503,
+        compileStatus: 'unavailable',
       })
     })
 

@@ -1,5 +1,6 @@
 import { expressify } from '@overleaf/promise-utils'
 import pLimit from 'p-limit'
+import logger from '@overleaf/logger'
 import ProjectGetter from './ProjectGetter.mjs'
 import ProjectLocator from './ProjectLocator.mjs'
 import Errors from '../Errors/Errors.js'
@@ -436,6 +437,26 @@ function isLatexDocumentPath(projectPath) {
   return projectPath.toLowerCase().endsWith('.tex')
 }
 
+function getCompileErrorDiagnostics(err) {
+  const compileStatusCode = Number.isInteger(err?.info?.statusCode)
+    ? err.info.statusCode
+    : null
+  const rawClsiResponse = err?.info?.clsiResponse
+
+  let compileStatus = null
+  if (typeof rawClsiResponse === 'string') {
+    try {
+      compileStatus = JSON.parse(rawClsiResponse)?.compile?.status || null
+    } catch {
+      compileStatus = null
+    }
+  } else if (rawClsiResponse && typeof rawClsiResponse === 'object') {
+    compileStatus = rawClsiResponse?.compile?.status || null
+  }
+
+  return { compileStatusCode, compileStatus }
+}
+
 async function downloadCompiledPdfByPath(req, res) {
   const projectId = req.params.Project_id
   const rawPath = req.params[0] ?? req.query?.path
@@ -474,7 +495,27 @@ async function downloadCompiledPdfByPath(req, res) {
     compileResult = await CompileManager.promises.compile(projectId, userId, {
       rootDoc_id: located.element._id.toString(),
     })
-  } catch {
+  } catch (err) {
+    const { compileStatusCode, compileStatus } = getCompileErrorDiagnostics(err)
+    logger.error(
+      {
+        err,
+        projectId,
+        projectPath,
+        rootDocId: located.element._id.toString(),
+        userId,
+        compileStatusCode,
+        compileStatus,
+      },
+      'failed to compile latex document for API compiled-pdf download by path'
+    )
+    if (compileStatusCode) {
+      return res.status(502).json({
+        error: 'compile backend error',
+        compileStatusCode,
+        compileStatus,
+      })
+    }
     return res.sendStatus(500)
   }
 

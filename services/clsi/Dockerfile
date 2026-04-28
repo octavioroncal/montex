@@ -54,7 +54,8 @@ RUN set -eux; \
       | sed 's/Depends: //' \
       | xargs apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends --fix-missing; \
     apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends --fix-missing \
-      fontconfig inkscape python3-pygments qpdf; \
+      fontconfig inkscape python3-pygments qpdf texlive-lang-spanish; \
+    kpsewhich spanish.ldf >/dev/null; \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p cache compiles output \
