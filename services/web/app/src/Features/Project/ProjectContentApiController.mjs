@@ -621,6 +621,76 @@ async function upsertProjectEntityByPath(req, res) {
   }
 }
 
+async function createProjectFolderByPath(req, res) {
+  const projectId = req.params.Project_id
+  const rawPath = req.params[0] ?? req.query?.path
+  const projectPath = rawPath ? normalizeProjectPath(String(rawPath)) : ''
+  const userId = getRequestUserId(req)
+
+  if (!projectPath) {
+    return res.status(400).json({
+      error: 'path is required',
+    })
+  }
+
+  if (!userId) {
+    return res.sendStatus(401)
+  }
+
+  try {
+    const located = await ProjectLocator.promises.findElementByPath({
+      project_id: projectId,
+      path: projectPath,
+      exactCaseMatch: true,
+    })
+
+    if (located.type !== 'folder') {
+      return res.status(400).json({
+        error: 'path points to a non-folder entity',
+      })
+    }
+
+    return res.status(200).json({
+      entity_id: located.element._id.toString(),
+      entity_type: 'folder',
+      path: projectPath,
+      created: false,
+    })
+  } catch (err) {
+    if (!(err instanceof Errors.NotFoundError)) {
+      throw err
+    }
+  }
+
+  try {
+    const folder = await UpdateMerger.promises.createFolder(
+      projectId,
+      `/${projectPath}`,
+      userId
+    )
+
+    return res.status(201).json({
+      entity_id: folder._id.toString(),
+      entity_type: 'folder',
+      path: projectPath,
+      created: true,
+    })
+  } catch (err) {
+    if (
+      err instanceof Errors.InvalidNameError ||
+      err instanceof Errors.DuplicateNameError
+    ) {
+      return res.status(400).json({
+        error: 'invalid_path',
+      })
+    }
+    if (err instanceof Errors.NotFoundError) {
+      return res.sendStatus(404)
+    }
+    throw err
+  }
+}
+
 async function deleteProjectEntityByPath(req, res) {
   const projectId = req.params.Project_id
   const rawPath = req.params[0] ?? req.query?.path
@@ -785,6 +855,7 @@ export default {
   downloadCompiledPdfByPath: expressify(downloadCompiledPdfByPath),
   downloadProjectAsZip: expressify(downloadProjectAsZip),
   upsertProjectEntityByPath: expressify(upsertProjectEntityByPath),
+  createProjectFolderByPath: expressify(createProjectFolderByPath),
   deleteProjectEntityByPath: expressify(deleteProjectEntityByPath),
   moveProjectEntityByPath: expressify(moveProjectEntityByPath),
 }

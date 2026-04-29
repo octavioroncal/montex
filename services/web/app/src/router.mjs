@@ -283,6 +283,18 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     ProjectContentApiController.downloadCompiledPdfByPath
   )
   publicApiRouter.put(
+    '/api/v1/project/:Project_id/folder/by-path/*',
+    ProjectContentApiAuthMiddleware.requireBearer,
+    AuthorizationMiddleware.ensureUserCanWriteProjectContent,
+    ProjectContentApiController.createProjectFolderByPath
+  )
+  publicApiRouter.put(
+    '/api/v1/project/:Project_id/directory/by-path/*',
+    ProjectContentApiAuthMiddleware.requireBearer,
+    AuthorizationMiddleware.ensureUserCanWriteProjectContent,
+    ProjectContentApiController.createProjectFolderByPath
+  )
+  publicApiRouter.put(
     '/api/v1/project/:Project_id/file/by-path/*',
     ProjectContentApiAuthMiddleware.requireBearer,
     AuthorizationMiddleware.ensureUserCanWriteProjectContent,

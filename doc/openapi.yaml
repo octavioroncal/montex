@@ -238,6 +238,107 @@ paths:
           description: Proyecto no encontrado.
         "500":
           description: Error generando el ZIP del proyecto.
+  /api/v1/project/{Project_id}/folder/by-path/{path}:
+    put:
+      operationId: upsertProjectFolderByPathApiV1
+      summary: Crear carpeta del proyecto por subruta
+      description: |
+        Crea una carpeta en la subruta indicada.
+        Si la carpeta ya existe, la operación devuelve `200` con `created=false`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Project_id
+          in: path
+          required: true
+          description: ID del proyecto.
+          schema:
+            type: string
+            minLength: 1
+        - name: path
+          in: path
+          required: true
+          allowReserved: true
+          description: Subruta de la carpeta dentro del proyecto.
+          schema:
+            type: string
+            minLength: 1
+          example: docs/meeting-notes
+      responses:
+        "200":
+          description: La carpeta ya existía.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectFolderUpsertResponse"
+        "201":
+          description: Carpeta creada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectFolderUpsertResponse"
+        "400":
+          description: Ruta inválida o la ruta apunta a un doc/fichero existente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: No autenticado.
+        "403":
+          description: Sin permisos para escribir en el proyecto.
+        "404":
+          description: Proyecto no encontrado.
+  /api/v1/project/{Project_id}/directory/by-path/{path}:
+    put:
+      operationId: upsertProjectDirectoryByPathApiV1
+      summary: Alias compatible para crear carpeta por subruta
+      description: |
+        Alias de `PUT /api/v1/project/{Project_id}/folder/by-path/{path}`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Project_id
+          in: path
+          required: true
+          description: ID del proyecto.
+          schema:
+            type: string
+            minLength: 1
+        - name: path
+          in: path
+          required: true
+          allowReserved: true
+          description: Subruta de la carpeta dentro del proyecto.
+          schema:
+            type: string
+            minLength: 1
+          example: docs/meeting-notes
+      responses:
+        "200":
+          description: La carpeta ya existía.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectFolderUpsertResponse"
+        "201":
+          description: Carpeta creada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectFolderUpsertResponse"
+        "400":
+          description: Ruta inválida o la ruta apunta a un doc/fichero existente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: No autenticado.
+        "403":
+          description: Sin permisos para escribir en el proyecto.
+        "404":
+          description: Proyecto no encontrado.
   /api/v1/project/{Project_id}/file/by-path/{path}:
     put:
       operationId: upsertProjectFileByPathApiV1
@@ -684,6 +785,23 @@ components:
           enum:
             - doc
             - file
+        path:
+          type: string
+        created:
+          type: boolean
+    ProjectFolderUpsertResponse:
+      type: object
+      required:
+        - entity_id
+        - entity_type
+        - path
+        - created
+      properties:
+        entity_id:
+          type: string
+        entity_type:
+          type: string
+          const: folder
         path:
           type: string
         created:

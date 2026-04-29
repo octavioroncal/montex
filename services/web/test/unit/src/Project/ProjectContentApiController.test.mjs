@@ -66,6 +66,7 @@ describe('ProjectContentApiController', function () {
     ctx.UpdateMerger = {
       promises: {
         mergeUpdate: sinon.stub(),
+        createFolder: sinon.stub(),
       },
     }
 
@@ -827,6 +828,127 @@ describe('ProjectContentApiController', function () {
       )
 
       await ctx.controller.upsertProjectEntityByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(400)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        error: 'invalid_path',
+      })
+    })
+  })
+
+  describe('createProjectFolderByPath', function () {
+    it('returns 400 if path is missing', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+
+      await ctx.controller.createProjectFolderByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(400)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        error: 'path is required',
+      })
+      expect(ctx.UpdateMerger.promises.createFolder.called).to.equal(false)
+    })
+
+    it('returns 401 when request has no user', async function (ctx) {
+      ctx.req.params[0] = 'nueva'
+
+      await ctx.controller.createProjectFolderByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(401)
+      expect(ctx.UpdateMerger.promises.createFolder.called).to.equal(false)
+    })
+
+    it('returns 200 when folder already exists', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'nueva'
+      ctx.ProjectLocator.promises.findElementByPath.resolves({
+        type: 'folder',
+        element: { _id: 'folder-id' },
+      })
+
+      await ctx.controller.createProjectFolderByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(200)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        entity_id: 'folder-id',
+        entity_type: 'folder',
+        path: 'nueva',
+        created: false,
+      })
+      expect(ctx.UpdateMerger.promises.createFolder.called).to.equal(false)
+    })
+
+    it('returns 400 when path points to a non-folder entity', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'src/main.tex'
+      ctx.ProjectLocator.promises.findElementByPath.resolves({
+        type: 'doc',
+        element: { _id: 'doc-id' },
+      })
+
+      await ctx.controller.createProjectFolderByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(400)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        error: 'path points to a non-folder entity',
+      })
+      expect(ctx.UpdateMerger.promises.createFolder.called).to.equal(false)
+    })
+
+    it('returns 201 when creating a new folder path', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'nueva/subcarpeta'
+      ctx.ProjectLocator.promises.findElementByPath.rejects(
+        new ctx.Errors.NotFoundError()
+      )
+      ctx.UpdateMerger.promises.createFolder.resolves({
+        _id: { toString: () => 'folder-id' },
+      })
+
+      await ctx.controller.createProjectFolderByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(
+        ctx.UpdateMerger.promises.createFolder.calledWith(
+          ctx.projectId,
+          '/nueva/subcarpeta',
+          'oauth-user-id'
+        )
+      ).to.equal(true)
+      expect(ctx.res.statusCode).to.equal(201)
+      expect(JSON.parse(ctx.res.body)).to.deep.equal({
+        entity_id: 'folder-id',
+        entity_type: 'folder',
+        path: 'nueva/subcarpeta',
+        created: true,
+      })
+    })
+
+    it('returns 404 when target project is not found', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'nueva'
+      ctx.ProjectLocator.promises.findElementByPath.rejects(
+        new ctx.Errors.NotFoundError()
+      )
+      ctx.UpdateMerger.promises.createFolder.rejects(
+        new ctx.Errors.NotFoundError()
+      )
+
+      await ctx.controller.createProjectFolderByPath(ctx.req, ctx.res, ctx.next)
+
+      expect(ctx.res.statusCode).to.equal(404)
+    })
+
+    it('returns 400 on invalid folder path', async function (ctx) {
+      ctx.req.oauth_user = { _id: 'oauth-user-id' }
+      ctx.req.params[0] = 'nueva//mal'
+      ctx.ProjectLocator.promises.findElementByPath.rejects(
+        new ctx.Errors.NotFoundError()
+      )
+      ctx.UpdateMerger.promises.createFolder.rejects(
+        new ctx.Errors.InvalidNameError('invalid element name')
+      )
+
+      await ctx.controller.createProjectFolderByPath(ctx.req, ctx.res, ctx.next)
 
       expect(ctx.res.statusCode).to.equal(400)
       expect(JSON.parse(ctx.res.body)).to.deep.equal({

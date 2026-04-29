@@ -47,6 +47,8 @@ The Extended CE includes three project-content endpoints (requires authenticatio
   Returns the full tree of folders, docs and files in a project.
 - `GET /project/{Project_id}/download/by-path/{path}`  
   Downloads a project entity directly using its in-project path (for example: `src/main.tex`).
+- `PUT /api/v1/project/{Project_id}/folder/by-path/{path}`  
+  Creates a folder by in-project path (nested paths are supported). Alias: `PUT /api/v1/project/{Project_id}/directory/by-path/{path}`.
 - `DELETE /api/v1/project/{Project_id}/entity/by-path/{path}`  
   Deletes a file or folder (recursively) by in-project path.
 - `GET /project/{Project_id}?path={ruta/del/fichero}`  
