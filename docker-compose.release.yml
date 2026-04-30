@@ -22,8 +22,10 @@ services:
       ADMIN_PRIVILEGE_AVAILABLE: "true"
       OVERLEAF_SITE_URL: ${OVERLEAF_SITE_URL:-http://localhost}
       OVERLEAF_NAV_TITLE: ${OVERLEAF_NAV_TITLE:-MonTex}
-      GIT_BRIDGE_ENABLED: ${GIT_BRIDGE_ENABLED:-false}
+      GIT_BRIDGE_ENABLED: ${GIT_BRIDGE_ENABLED:-true}
       GIT_BRIDGE_HOST: ${GIT_BRIDGE_HOST:-git-bridge}
+      GIT_BRIDGE_PORT: ${GIT_BRIDGE_PORT:-8000}
+      V1_HISTORY_URL: ${V1_HISTORY_URL:-http://sharelatex:3100/api}
       NODE_ENV: production
     volumes:
       - ${OVERLEAF_DATA_PATH:-/srv/overleaf/data}:/var/lib/overleaf:Z
@@ -35,11 +37,14 @@ services:
     depends_on:
       - sharelatex
     environment:
-      GIT_BRIDGE_API_BASE_URL: ${GIT_BRIDGE_API_BASE_URL:-http://sharelatex/api/v0}
+      GIT_BRIDGE_PORT: ${GIT_BRIDGE_PORT:-8000}
+      GIT_BRIDGE_API_BASE_URL: ${GIT_BRIDGE_API_BASE_URL:-http://sharelatex:3000/api/v0/}
       GIT_BRIDGE_OAUTH2_SERVER: ${GIT_BRIDGE_OAUTH2_SERVER:-http://sharelatex}
       GIT_BRIDGE_POSTBACK_BASE_URL: ${GIT_BRIDGE_POSTBACK_BASE_URL:-http://git-bridge:8000}
       GIT_BRIDGE_ROOT_DIR: /data/git-bridge
       LOG_LEVEL: ${GIT_BRIDGE_LOG_LEVEL:-INFO}
+    user: root
+    command: ["/server-pro-start.sh"]
     volumes:
       - git-bridge-data:/data/git-bridge
 

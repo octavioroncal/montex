@@ -139,13 +139,22 @@ BUILD_BASE=0 OVERLEAF_BASE_TAG=<your-modern-base-image> ./scripts/release.sh <do
 Deploy that image with:
 
 ```bash
-MONTEX_IMAGE=oroncal/montex MONTEX_TAG=1.0.0 docker compose -f docker-compose.release.yml up -d
+OVERLEAF_SITE_URL=https://latex.tu-dominio.com \
+MONTEX_IMAGE=oroncal/montex MONTEX_TAG=1.0.0 \
+docker compose -f docker-compose.release.yml up -d
 ```
 
-Optional Git Bridge in release:
+Git Bridge enabled in release (default):
 
 ```bash
-GIT_BRIDGE_ENABLED=true MONTEX_IMAGE=oroncal/montex MONTEX_TAG=1.0.0 \
+MONTEX_IMAGE=oroncal/montex MONTEX_TAG=1.0.0 \
+  docker compose -f docker-compose.release.yml up -d
+```
+
+Disable Git Bridge explicitly if needed:
+
+```bash
+GIT_BRIDGE_ENABLED=false MONTEX_IMAGE=oroncal/montex MONTEX_TAG=1.0.0 \
   docker compose -f docker-compose.release.yml up -d
 ```
 
