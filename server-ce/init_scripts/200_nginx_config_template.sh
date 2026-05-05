@@ -28,6 +28,9 @@ if [ -f "${nginx_template_file}" ]; then
   export GIT_BRIDGE_HOST="${GIT_BRIDGE_HOST:-git-bridge}"
   export GIT_BRIDGE_PORT="${GIT_BRIDGE_PORT:-8000}"
   export GIT_BRIDGE_REPOSTORE_MAX_FILE_SIZE="${GIT_BRIDGE_REPOSTORE_MAX_FILE_SIZE:-52428800}"
+  # Use container DNS for dynamic upstream resolution (Podman-safe).
+  export NGINX_GIT_RESOLVER="${GIT_BRIDGE_NGINX_RESOLVER:-$(awk '/^nameserver/{print $2; exit}' /etc/resolv.conf)}"
+  export NGINX_GIT_RESOLVER="${NGINX_GIT_RESOLVER:-127.0.0.11}"
   echo "Nginx: generating config file from template"
 
   # Note the single-quotes, they are important.
@@ -48,6 +51,7 @@ if [ -f "${nginx_template_file}" ]; then
     ${GIT_BRIDGE_HOST}
     ${GIT_BRIDGE_PORT}
     ${GIT_BRIDGE_REPOSTORE_MAX_FILE_SIZE}
+    ${NGINX_GIT_RESOLVER}
   ' \
     < "${overleaf_template_file}" \
     > "${overleaf_config_file}"

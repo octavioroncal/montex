@@ -158,6 +158,13 @@ GIT_BRIDGE_ENABLED=false MONTEX_IMAGE=oroncal/montex MONTEX_TAG=1.0.0 \
   docker compose -f docker-compose.release.yml up -d
 ```
 
+When running with Podman, the internal `/git` proxy resolver is auto-detected from the container DNS. If needed, you can force it:
+
+```bash
+GIT_BRIDGE_NGINX_RESOLVER=10.89.0.1 MONTEX_IMAGE=oroncal/montex MONTEX_TAG=1.0.0 \
+  docker compose -f docker-compose.release.yml up -d
+```
+
 ## Authors
 
 [The Overleaf Team](https://www.overleaf.com/about)\
