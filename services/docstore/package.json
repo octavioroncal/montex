@@ -26,10 +26,10 @@
     "@overleaf/settings": "*",
     "@overleaf/stream-utils": "^0.1.0",
     "async": "^3.2.5",
-    "body-parser": "1.20.4",
+    "body-parser": "1.20.5",
     "bunyan": "^1.8.15",
     "celebrate": "12.1.2",
-    "express": "4.22.1",
+    "express": "4.22.2",
     "lodash": "^4.18.1",
     "mongodb-legacy": "6.1.3",
     "p-map": "^4.0.0"

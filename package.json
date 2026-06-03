@@ -33,13 +33,15 @@
     "npm": "11.6.2"
   },
   "overrides": {
+    "body-parser": "1.20.5",
+    "express": "4.22.2",
     "lodash": "4.18.1",
-    "qs": "6.14.2",
+    "qs": "6.15.2",
     "serialize-javascript": "7.0.5",
     "underscore@1.12.1": "1.13.8",
     "cypress@13.13.2": {
       "@cypress/request@3.0.9": {
-        "qs": "6.14.2"
+        "qs": "6.15.2"
       }
     },
     "@opentelemetry/api": "1.9.0",

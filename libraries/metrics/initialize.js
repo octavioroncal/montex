@@ -30,16 +30,16 @@ recordProcessStart()
 
 function initializeOpenTelemetryInstrumentation() {
   console.log('Starting OpenTelemetry instrumentation')
-  const opentelemetry = require('@opentelemetry/sdk-node')
+  const { NodeSDK } = require('@opentelemetry/sdk-node')
   const {
     getNodeAutoInstrumentations,
   } = require('@opentelemetry/auto-instrumentations-node')
-  const { Resource } = require('@opentelemetry/resources')
+  const { resourceFromAttributes } = require('@opentelemetry/resources')
   const {
     SemanticResourceAttributes,
   } = require('@opentelemetry/semantic-conventions')
 
-  const resource = new Resource({
+  const resource = resourceFromAttributes({
     [SemanticResourceAttributes.SERVICE_NAME]: APP_NAME,
     [SemanticResourceAttributes.SERVICE_NAMESPACE]: 'Overleaf',
     'host.type': 'VM',
@@ -47,8 +47,10 @@ function initializeOpenTelemetryInstrumentation() {
 
   let exporter
   if (GCP_OPENTELEMETRY) {
-    const GCP = require('@google-cloud/opentelemetry-cloud-trace-exporter')
-    exporter = new GCP.TraceExporter()
+    const {
+      TraceExporter,
+    } = require('@google-cloud/opentelemetry-cloud-trace-exporter')
+    exporter = new TraceExporter()
   } else if (JAEGER_OPENTELEMETRY) {
     const {
       OTLPTraceExporter,
@@ -60,9 +62,8 @@ function initializeOpenTelemetryInstrumentation() {
     return
   }
 
-  const sdk = new opentelemetry.NodeSDK({
+  const sdk = new NodeSDK({
     traceExporter: exporter,
-    logger: console,
     instrumentations: [getNodeAutoInstrumentations()],
     resource,
   })

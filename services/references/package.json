@@ -13,7 +13,7 @@
     "@overleaf/logger": "*",
     "@overleaf/metrics": "*",
     "async": "^3.2.5",
-    "express": "^4.22.1"
+    "express": "^4.22.2"
   },
   "devDependencies": {
   }
