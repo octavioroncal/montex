@@ -80,15 +80,21 @@ build_and_push_manifest() {
   local latest_ref="$4"
   shift 4
   local -a build_args=("$@")
+  local -a build_cmd=(
+    podman build
+    --platform "$PLATFORMS"
+    --manifest "$manifest_name"
+    --file "$dockerfile_path"
+  )
 
   podman manifest rm --ignore "$manifest_name" >/dev/null 2>&1 || true
 
-  podman build \
-    --platform "$PLATFORMS" \
-    --manifest "$manifest_name" \
-    --file "$dockerfile_path" \
-    "${build_args[@]}" \
-    "$CONTEXT"
+  if [[ "${#build_args[@]}" -gt 0 ]]; then
+    build_cmd+=("${build_args[@]}")
+  fi
+  build_cmd+=("$CONTEXT")
+
+  "${build_cmd[@]}"
 
   podman manifest push --all "$manifest_name" "docker://${version_ref}"
   podman manifest push --all "$manifest_name" "docker://${latest_ref}"
