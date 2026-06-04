@@ -73,6 +73,42 @@ cleanup() {
   podman manifest rm --ignore "$LOCAL_BASE_MANIFEST" "$LOCAL_APP_MANIFEST" >/dev/null 2>&1 || true
 }
 
+infer_registry_host() {
+  local repo="$1"
+  local first_component="${repo%%/*}"
+  if [[ "$repo" == "$first_component" ]]; then
+    echo "docker.io"
+  elif [[ "$first_component" == "localhost" || "$first_component" == *.* || "$first_component" == *:* ]]; then
+    echo "$first_component"
+  else
+    echo "docker.io"
+  fi
+}
+
+warn_if_podman_memory_is_low() {
+  local mem_total_bytes
+  mem_total_bytes="$(podman info --format '{{.Host.MemTotal}}' 2>/dev/null || echo 0)"
+
+  if [[ "$mem_total_bytes" =~ ^[0-9]+$ ]] && (( mem_total_bytes > 0 && mem_total_bytes < 8589934592 )); then
+    local mem_total_gib
+    mem_total_gib=$(( mem_total_bytes / 1024 / 1024 / 1024 ))
+    cat >&2 <<EOF
+Advertencia: la VM de Podman tiene ${mem_total_gib} GiB de RAM.
+Este release ejecuta npm install y webpack sobre un monorepo y suele necesitar al menos 8 GiB.
+Con menos memoria es normal que falle con exit status 137.
+
+Sugerencia:
+  podman machine stop
+  podman machine set --memory 8192
+  podman machine start
+
+Si solo necesitas publicar ARM64:
+  PLATFORMS=linux/arm64 ./scripts/release.sh $REPO $VERSION
+EOF
+    echo >&2
+  fi
+}
+
 build_and_push_manifest() {
   local manifest_name="$1"
   local dockerfile_path="$2"
@@ -102,6 +138,9 @@ build_and_push_manifest() {
 
 trap cleanup EXIT
 
+REGISTRY_HOST="$(infer_registry_host "$REPO")"
+warn_if_podman_memory_is_low
+
 echo "Repositorio registry   : $REPO"
 echo "Versión               : $VERSION"
 echo "Plataformas           : $PLATFORMS"
@@ -110,7 +149,7 @@ echo "Base image            : $OVERLEAF_BASE_TAG"
 echo "Dockerfile            : $DOCKERFILE"
 echo "Contexto              : $CONTEXT"
 echo
-echo "Asegúrate de haber hecho login: podman login"
+echo "Asegúrate de haber hecho login: podman login $REGISTRY_HOST"
 echo
 
 if [[ "$BUILD_BASE" == "1" ]]; then
